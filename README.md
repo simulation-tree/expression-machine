@@ -13,8 +13,9 @@ must be perfect when given to a virtual machine.
 - Injectable functions accepting either 1 or 0 values as input
 
 ### Usage example
-Below is an example that prints out coordinates of a circle with radius 4. While
-reusing the same virtual machine instance by modifying its source and variables.
+Below is an example that returns coordinates for 360 points of a circle with either
+a radius or a diameter as input. While reusing the same machine instance by modifying
+its source and variables.
 ```csharp
 public List<Vector2> GetCirclePositions(float value, bool isDiameter)
 {
