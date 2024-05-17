@@ -26,6 +26,9 @@ namespace ExpressionMachine
             GetTokens(expression, map, tokens);
         }
 
+        /// <summary>
+        /// Populates the given list with tokens from the given expression.
+        /// </summary>
         public static unsafe void GetTokens(ReadOnlySpan<char> expression, TokenMap map, UnmanagedList<Token> tokens)
         {
             uint position = 0;
