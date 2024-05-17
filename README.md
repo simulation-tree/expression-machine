@@ -19,7 +19,7 @@ reusing the same virtual machine instance by modifying its source and variables.
 public List<Vector2> GetCirclePositions(float value, bool isDiameter)
 {
     List<Vector2> positions = new();
-    using ExpressionMachine vm = new();
+    using Machine vm = new();
     vm.SetVariable("value", value);
     vm.SetVariable("multiplier", isDiameter ? 2 : 1);
 
