@@ -10,7 +10,7 @@ must be perfect when given to a virtual machine.
 - Basic arithmetic operations (addition, subtraction, multiplication, division)
 - Parentheses for grouping operations
 - Injectable variables as floats
-- Injectable functions accepting either 1 or 0 values as input
+- Injectable functions accepting 1 or 0 input arguments
 
 ### Usage example
 Below is an example that returns coordinates for 360 points of a circle with either
