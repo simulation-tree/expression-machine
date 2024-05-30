@@ -107,20 +107,19 @@ namespace ExpressionMachine.Unsafe
         public static void SetSource(UnsafeMachine* machine, ReadOnlySpan<char> newSource)
         {
             Allocations.ThrowIfNull(machine);
-            if (machine->source.Length < newSource.Length)
+            Span<char> currentSource = machine->source.AsSpan();
+            if (!newSource.Equals(currentSource, StringComparison.Ordinal))
             {
                 machine->source.Resize((uint)newSource.Length);
+                Span<char> span = machine->source.AsSpan();
+                newSource.CopyTo(span);
+
+                machine->tokens.Clear();
+                Parsing.GetTokens(newSource, machine->map, machine->tokens);
+
+                machine->tree.Dispose();
+                machine->tree = Parsing.GetTree(machine->tokens.AsSpan());
             }
-
-            machine->source.Clear();
-            Span<char> span = machine->source.AsSpan();
-            newSource.CopyTo(span);
-
-            machine->tokens.Clear();
-            Parsing.GetTokens(newSource, machine->map, machine->tokens);
-
-            machine->tree.Dispose();
-            machine->tree = Parsing.GetTree(machine->tokens.AsSpan());
         }
 
         public static ReadOnlySpan<char> GetSource(UnsafeMachine* machine)
@@ -137,8 +136,16 @@ namespace ExpressionMachine.Unsafe
 
         public static float Evaluate(UnsafeMachine* machine)
         {
-            Allocations.ThrowIfNull(machine);
-            return machine->tree.Evaluate(new(machine));
+            //Allocations.ThrowIfNull(machine);
+            ReadOnlySpan<char> source = machine->source.AsSpan();
+            if (float.TryParse(source, out float result))
+            {
+                return result;
+            }
+            else
+            {
+                return machine->tree.Evaluate(new(machine));
+            }
         }
     }
 }
