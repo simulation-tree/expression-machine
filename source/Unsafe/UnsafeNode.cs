@@ -5,12 +5,12 @@ namespace ExpressionMachine.Unsafe
 {
     public unsafe struct UnsafeNode
     {
-        private Type type;
+        private NodeType type;
         private nint a;
         private nint b;
         private nint c;
 
-        public static Type GetType(UnsafeNode* node)
+        public static NodeType GetType(UnsafeNode* node)
         {
             Allocations.ThrowIfNull(node);
             return node->type;
@@ -36,21 +36,21 @@ namespace ExpressionMachine.Unsafe
 
         public static bool IsDisposed(UnsafeNode* node)
         {
-            return Allocations.IsNull(node) || node->type == Type.Unknown;
+            return Allocations.IsNull(node) || node->type == NodeType.Unknown;
         }
 
         public static void Free(ref UnsafeNode* node)
         {
             Allocations.ThrowIfNull(node);
-            Type type = node->type;
-            if (type == Type.Addition || type == Type.Subtraction || type == Type.Multiplication || type == Type.Division)
+            NodeType type = node->type;
+            if (type == NodeType.Addition || type == NodeType.Subtraction || type == NodeType.Multiplication || type == NodeType.Division)
             {
                 UnsafeNode* left = (UnsafeNode*)node->a;
                 UnsafeNode* right = (UnsafeNode*)node->b;
                 Free(ref left);
                 Free(ref right);
             }
-            else if (type == Type.Call)
+            else if (type == NodeType.Call)
             {
                 UnsafeNode* argument = (UnsafeNode*)node->c;
                 if (!Allocations.IsNull(argument))
@@ -59,7 +59,7 @@ namespace ExpressionMachine.Unsafe
                 }
             }
 
-            node->type = Type.Unknown;
+            node->type = NodeType.Unknown;
             node->a = default;
             node->b = default;
             node->c = default;
@@ -69,10 +69,10 @@ namespace ExpressionMachine.Unsafe
         public static float Evaluate(UnsafeNode* node, Machine vm)
         {
             Allocations.ThrowIfNull(node);
-            Type type = node->type;
+            NodeType type = node->type;
             switch (type)
             {
-                case Type.Value:
+                case NodeType.Value:
                     ReadOnlySpan<char> token = vm.GetToken((uint)node->a, (uint)node->b);
                     if (float.TryParse(token, out float value))
                     {
@@ -82,15 +82,15 @@ namespace ExpressionMachine.Unsafe
                     {
                         return vm.GetVariable(token);
                     }
-                case Type.Addition:
+                case NodeType.Addition:
                     return Evaluate((UnsafeNode*)node->a, vm) + Evaluate((UnsafeNode*)node->b, vm);
-                case Type.Subtraction:
+                case NodeType.Subtraction:
                     return Evaluate((UnsafeNode*)node->a, vm) - Evaluate((UnsafeNode*)node->b, vm);
-                case Type.Multiplication:
+                case NodeType.Multiplication:
                     return Evaluate((UnsafeNode*)node->a, vm) * Evaluate((UnsafeNode*)node->b, vm);
-                case Type.Division:
+                case NodeType.Division:
                     return Evaluate((UnsafeNode*)node->a, vm) / Evaluate((UnsafeNode*)node->b, vm);
-                case Type.Call:
+                case NodeType.Call:
                     token = vm.GetToken((uint)node->a, (uint)node->b);
                     UnsafeNode* argument = (UnsafeNode*)node->c;
                     if (IsDisposed(argument))
@@ -111,14 +111,14 @@ namespace ExpressionMachine.Unsafe
         {
             void* node = Allocations.Allocate((uint)sizeof(nint) * 4);
             nint* span = (nint*)node;
-            span[0] = (nint)Type.Value;
+            span[0] = (nint)NodeType.Value;
             span[1] = (nint)start;
             span[2] = (nint)length;
             span[3] = default;
             return (UnsafeNode*)node;
         }
 
-        public static UnsafeNode* Allocate(Type type, UnsafeNode* left, UnsafeNode* right)
+        public static UnsafeNode* Allocate(NodeType type, UnsafeNode* left, UnsafeNode* right)
         {
             void* node = Allocations.Allocate((uint)sizeof(nint) * 4);
             nint* span = (nint*)node;
@@ -133,22 +133,11 @@ namespace ExpressionMachine.Unsafe
         {
             void* node = Allocations.Allocate((uint)sizeof(nint) * 4);
             nint* span = (nint*)node;
-            span[0] = (nint)Type.Call;
+            span[0] = (nint)NodeType.Call;
             span[1] = (nint)start;
             span[2] = (nint)length;
             span[3] = (nint)argument;
             return (UnsafeNode*)node;
-        }
-
-        public enum Type : byte
-        {
-            Unknown = 0,
-            Value = 1,
-            Addition = 2,
-            Subtraction = 3,
-            Multiplication = 4,
-            Division = 5,
-            Call = 6,
         }
     }
 }

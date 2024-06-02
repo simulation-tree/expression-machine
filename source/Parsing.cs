@@ -92,13 +92,13 @@ namespace ExpressionMachine
                 {
                     position++;
                     UnsafeNode* right = TryReadFactor(ref position, tokens);
-                    result = UnsafeNode.Allocate(UnsafeNode.Type.Addition, result, right);
+                    result = UnsafeNode.Allocate(NodeType.Addition, result, right);
                 }
                 else if (current.type == Token.Type.Subtract)
                 {
                     position++;
                     UnsafeNode* right = TryReadFactor(ref position, tokens);
-                    result = UnsafeNode.Allocate(UnsafeNode.Type.Subtraction, result, right);
+                    result = UnsafeNode.Allocate(NodeType.Subtraction, result, right);
                 }
 
                 if (position == tokens.Length)
@@ -127,13 +127,13 @@ namespace ExpressionMachine
                 {
                     position++;
                     UnsafeNode* right = TryReadTerm(ref position, tokens);
-                    factor = UnsafeNode.Allocate(UnsafeNode.Type.Multiplication, factor, right);
+                    factor = UnsafeNode.Allocate(NodeType.Multiplication, factor, right);
                 }
                 else if (current.type == Token.Type.Divide)
                 {
                     position++;
                     UnsafeNode* right = TryReadTerm(ref position, tokens);
-                    factor = UnsafeNode.Allocate(UnsafeNode.Type.Division, factor, right);
+                    factor = UnsafeNode.Allocate(NodeType.Division, factor, right);
                 }
 
                 if (position == tokens.Length)

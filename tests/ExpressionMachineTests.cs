@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ExpressionMachine.Unsafe;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -146,6 +147,19 @@ namespace ExpressionMachine.Tests
             {
                 return MathF.Sin(value);
             }
+        }
+
+        [Test]
+        public void UseNodes()
+        {
+            ReadOnlySpan<char> source = "2+5";
+            Node a = new(0, 1);
+            Assert.That(a.Type, Is.EqualTo(NodeType.Value));
+            Assert.That((int)a.A, Is.EqualTo(0));
+            Assert.That((int)a.B, Is.EqualTo(1));
+            Assert.That(a.IsDisposed, Is.False);
+            a.Dispose();
+            Assert.That(a.IsDisposed, Is.True);
         }
     }
 }
