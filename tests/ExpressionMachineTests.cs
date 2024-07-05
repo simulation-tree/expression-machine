@@ -1,5 +1,4 @@
-﻿using ExpressionMachine.Unsafe;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -12,7 +11,7 @@ namespace ExpressionMachine.Tests
         [TearDown]
         public void CleanUp()
         {
-            Allocations.ThrowIfAnyAllocation();
+            Allocations.ThrowIfAny();
         }
 
         [Test]
