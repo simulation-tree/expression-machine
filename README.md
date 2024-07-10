@@ -1,7 +1,7 @@
 # Expression Machine
-Unmanaged library for evaluating simple expressions at runtime.
+Library for evaluating logic expressions at runtime.
 
-### Exceptions and memory Leaks
+### Exceptions and memory Leaks (wip)
 This library is unmanaged, and currently doesn't have tools to handle compilation
 or parsing errors, which will cause memory leaks. This means all given expressions
 must be perfect when given to a virtual machine.
@@ -9,10 +9,12 @@ must be perfect when given to a virtual machine.
 ### Characteristics
 - Basic arithmetic operations (addition, subtraction, multiplication, division)
 - Parentheses for grouping operations
-- Injectable variables as floats
-- Injectable functions accepting 1 or 0 input arguments
+- Injectable `float` variables
+- Injectable functions accepting one or no input arguments
 
-### Usage example
+<details>
+    <summary>Usage example</summary>
+    
 Below is an example that returns coordinates for 360 points of a circle with either
 a radius or a diameter as input. While reusing the same machine instance by modifying
 its source and variables.
@@ -57,10 +59,12 @@ public List<Vector2> GetCirclePositions(float value, bool isDiameter)
 }
 ```
 
+</details>
+
 ### Contributions and direction
-This library is small and isn't mean to substitute things like Lua or other
-languages within interpreters. Instead, it's more fitting as a base to extend upon and
-branch away. And it should remain as unmanaged as it is. Without extending it, it's
-most useful fruit is allowing your code to express different values, all through a single C# variable via different expressions.
+This library is small and isn't mean to substitute things like Lua or other languages within interpreters.
+Instead, it's more fitting as a base to extend upon and branch away. And it should remain as unmanaged as it is.
+Without extending it, it's most useful fruit is allowing your code to express different values, all through a
+single C# variable via different expressions.
 
 Contributions that align with this are welcome.
