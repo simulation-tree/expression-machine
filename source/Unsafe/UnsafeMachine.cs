@@ -58,7 +58,7 @@ namespace ExpressionMachine.Unsafe
         public static float GetVariable(UnsafeMachine* machine, ReadOnlySpan<char> name)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.GetDjb2HashCode(name);
+            int hash = Djb2Hash.Get(name);
             if (machine->variables.TryGetValue(hash, out float value))
             {
                 return value;
@@ -72,28 +72,28 @@ namespace ExpressionMachine.Unsafe
         public static bool ContainsVariable(UnsafeMachine* machine, ReadOnlySpan<char> name)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.GetDjb2HashCode(name);
+            int hash = Djb2Hash.Get(name);
             return machine->variables.ContainsKey(hash);
         }
 
         public static void SetVariable(UnsafeMachine* machine, ReadOnlySpan<char> name, float value)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.GetDjb2HashCode(name);
-            machine->variables[hash] = value;
+            int hash = Djb2Hash.Get(name);
+            machine->variables.AddOrSet(hash, value);
         }
 
         public static void SetFunction(UnsafeMachine* machine, ReadOnlySpan<char> name, Function function)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.GetDjb2HashCode(name);
-            machine->functions[hash] = function;
+            int hash = Djb2Hash.Get(name);
+            machine->functions.AddOrSet(hash, function);
         }
 
         public static float InvokeFunction(UnsafeMachine* machine, ReadOnlySpan<char> name, float value)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.GetDjb2HashCode(name);
+            int hash = Djb2Hash.Get(name);
             if (machine->functions.TryGetValue(hash, out Function function))
             {
                 return function.Invoke(value);

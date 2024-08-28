@@ -46,7 +46,7 @@ namespace ExpressionMachine
         public readonly void SetSource(FixedString newSource)
         {
             Span<char> buffer = stackalloc char[newSource.Length];
-            newSource.CopyTo(buffer);
+            newSource.ToString(buffer);
             SetSource(buffer);
         }
 
@@ -73,7 +73,7 @@ namespace ExpressionMachine
         public readonly void SetVariable(FixedString name, float value)
         {
             Span<char> buffer = stackalloc char[name.Length];
-            name.CopyTo(buffer);
+            name.ToString(buffer);
             SetVariable(buffer, value);
         }
 
