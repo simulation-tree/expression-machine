@@ -73,8 +73,8 @@ namespace ExpressionMachine.Unsafe
             switch (type)
             {
                 case NodeType.Value:
-                    ReadOnlySpan<char> token = vm.GetToken((uint)node->a, (uint)node->b);
-                    if (float.TryParse(token, out float value))
+                    USpan<char> token = vm.GetToken((uint)node->a, (uint)node->b);
+                    if (float.TryParse(token.AsSystemSpan(), out float value))
                     {
                         return value;
                     }

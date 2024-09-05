@@ -1,4 +1,5 @@
 ﻿using System;
+using Unmanaged;
 using Unmanaged.Collections;
 
 namespace ExpressionMachine
@@ -11,14 +12,14 @@ namespace ExpressionMachine
         /// <summary>
         /// Individual characters that correspond to the <see cref="Token.Type"/>.
         /// </summary>
-        public readonly ReadOnlySpan<char> Tokens => tokens.AsSpan();
+        public readonly USpan<char> Tokens => tokens.AsSpan();
 
         /// <summary>
         /// Characters to ignore when parsing (whitespace).
         /// </summary>
-        public readonly ReadOnlySpan<char> Ignore => ignore.AsSpan();
+        public readonly USpan<char> Ignore => ignore.AsSpan();
 
-        public readonly bool IsDisposed => tokens.IsDisposed || ignore.IsDisposed;
+        public readonly bool IsDisposed => tokens.IsDisposed;
 
         public readonly char this[Token.Type index]
         {
@@ -36,7 +37,10 @@ namespace ExpressionMachine
             tokens[(uint)Token.Type.Divide] = '/';
             tokens[(uint)Token.Type.OpenParenthesis] = '(';
             tokens[(uint)Token.Type.CloseParenthesis] = ')';
-            ignore = new(" \t".AsSpan());
+
+            ignore = new(2);
+            ignore.Add(' ');
+            ignore.Add('\t');
         }
 
         public readonly void Dispose()

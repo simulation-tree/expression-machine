@@ -113,7 +113,7 @@ namespace ExpressionMachine.Tests
             }
 
             List<Vector2> positions = new();
-            for (int i = 0; i < 360; i++)
+            for (uint i = 0; i < 360; i++)
             {
                 float t = i * MathF.PI / 180;
                 vm.SetVariable("t", t);
@@ -125,7 +125,7 @@ namespace ExpressionMachine.Tests
             }
 
             List<Vector2> otherPositions = new();
-            for (int i = 0; i < 360; i++)
+            for (uint i = 0; i < 360; i++)
             {
                 float t = i * MathF.PI / 180;
                 float x = MathF.Cos(t) * radius;
@@ -151,7 +151,7 @@ namespace ExpressionMachine.Tests
         [Test]
         public void UseNodes()
         {
-            ReadOnlySpan<char> source = "2+5";
+            USpan<char> source = "2+5".AsSpan();
             Node a = new(0, 1);
             Assert.That(a.Type, Is.EqualTo(NodeType.Value));
             Assert.That((int)a.A, Is.EqualTo(0));

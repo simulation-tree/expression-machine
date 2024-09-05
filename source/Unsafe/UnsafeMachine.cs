@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Unmanaged;
 using Unmanaged.Collections;
 
@@ -55,7 +54,7 @@ namespace ExpressionMachine.Unsafe
             machine->variables.Clear();
         }
 
-        public static float GetVariable(UnsafeMachine* machine, ReadOnlySpan<char> name)
+        public static float GetVariable(UnsafeMachine* machine, USpan<char> name)
         {
             Allocations.ThrowIfNull(machine);
             int hash = Djb2Hash.Get(name);
@@ -69,28 +68,28 @@ namespace ExpressionMachine.Unsafe
             }
         }
 
-        public static bool ContainsVariable(UnsafeMachine* machine, ReadOnlySpan<char> name)
+        public static bool ContainsVariable(UnsafeMachine* machine, USpan<char> name)
         {
             Allocations.ThrowIfNull(machine);
             int hash = Djb2Hash.Get(name);
             return machine->variables.ContainsKey(hash);
         }
 
-        public static void SetVariable(UnsafeMachine* machine, ReadOnlySpan<char> name, float value)
+        public static void SetVariable(UnsafeMachine* machine, USpan<char> name, float value)
         {
             Allocations.ThrowIfNull(machine);
             int hash = Djb2Hash.Get(name);
             machine->variables.AddOrSet(hash, value);
         }
 
-        public static void SetFunction(UnsafeMachine* machine, ReadOnlySpan<char> name, Function function)
+        public static void SetFunction(UnsafeMachine* machine, USpan<char> name, Function function)
         {
             Allocations.ThrowIfNull(machine);
             int hash = Djb2Hash.Get(name);
             machine->functions.AddOrSet(hash, function);
         }
 
-        public static float InvokeFunction(UnsafeMachine* machine, ReadOnlySpan<char> name, float value)
+        public static float InvokeFunction(UnsafeMachine* machine, USpan<char> name, float value)
         {
             Allocations.ThrowIfNull(machine);
             int hash = Djb2Hash.Get(name);
@@ -104,14 +103,14 @@ namespace ExpressionMachine.Unsafe
             }
         }
 
-        public static void SetSource(UnsafeMachine* machine, ReadOnlySpan<char> newSource)
+        public static void SetSource(UnsafeMachine* machine, USpan<char> newSource)
         {
             Allocations.ThrowIfNull(machine);
-            Span<char> currentSource = machine->source.AsSpan();
-            if (!newSource.Equals(currentSource, StringComparison.Ordinal))
+            USpan<char> currentSource = machine->source.AsSpan();
+            if (!newSource.SequenceEqual(currentSource))
             {
-                machine->source.Resize((uint)newSource.Length);
-                Span<char> span = machine->source.AsSpan();
+                machine->source.Resize(newSource.length);
+                USpan<char> span = machine->source.AsSpan();
                 newSource.CopyTo(span);
 
                 machine->tokens.Clear();
@@ -122,23 +121,23 @@ namespace ExpressionMachine.Unsafe
             }
         }
 
-        public static ReadOnlySpan<char> GetSource(UnsafeMachine* machine)
+        public static USpan<char> GetSource(UnsafeMachine* machine)
         {
             Allocations.ThrowIfNull(machine);
             return machine->source.AsSpan();
         }
 
-        public static ReadOnlySpan<char> GetToken(UnsafeMachine* machine, uint start, uint length)
+        public static USpan<char> GetToken(UnsafeMachine* machine, uint start, uint length)
         {
             Allocations.ThrowIfNull(machine);
-            return machine->source.AsSpan().Slice((int)start, (int)length);
+            return machine->source.AsSpan().Slice(start, length);
         }
 
         public static float Evaluate(UnsafeMachine* machine)
         {
-            //Allocations.ThrowIfNull(machine);
-            ReadOnlySpan<char> source = machine->source.AsSpan();
-            if (float.TryParse(source, out float result))
+            Allocations.ThrowIfNull(machine);
+            USpan<char> source = machine->source.AsSpan();
+            if (float.TryParse(source.AsSystemSpan(), out float result))
             {
                 return result;
             }
