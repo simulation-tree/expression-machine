@@ -151,7 +151,7 @@ namespace ExpressionMachine.Tests
         [Test]
         public void UseNodes()
         {
-            USpan<char> source = "2+5".AsSpan();
+            USpan<char> source = "2+5".AsUSpan();
             Node a = new(0, 1);
             Assert.That(a.Type, Is.EqualTo(NodeType.Value));
             Assert.That((int)a.A, Is.EqualTo(0));
