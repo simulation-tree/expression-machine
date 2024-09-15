@@ -33,7 +33,7 @@ namespace ExpressionMachine
         public static unsafe void GetTokens(USpan<char> expression, TokenMap map, UnmanagedList<Token> tokens)
         {
             uint position = 0;
-            uint length = expression.length;
+            uint length = expression.Length;
             while (position < length)
             {
                 char current = expression[position];
@@ -80,13 +80,13 @@ namespace ExpressionMachine
         private static UnsafeNode* TryParseExpression(ref uint position, USpan<Token> tokens)
         {
             UnsafeNode* result = TryReadFactor(ref position, tokens);
-            if (position == tokens.length)
+            if (position == tokens.Length)
             {
                 return result;
             }
 
             Token current = tokens[position];
-            while (result is not null && position < tokens.length && IsTerm(current.type))
+            while (result is not null && position < tokens.Length && IsTerm(current.type))
             {
                 if (current.type == Token.Type.Add)
                 {
@@ -101,7 +101,7 @@ namespace ExpressionMachine
                     result = UnsafeNode.Allocate(NodeType.Subtraction, result, right);
                 }
 
-                if (position == tokens.length)
+                if (position == tokens.Length)
                 {
                     break;
                 }
@@ -115,13 +115,13 @@ namespace ExpressionMachine
         private static UnsafeNode* TryReadFactor(ref uint position, USpan<Token> tokens)
         {
             UnsafeNode* factor = TryReadTerm(ref position, tokens);
-            if (position == tokens.length)
+            if (position == tokens.Length)
             {
                 return factor;
             }
 
             Token current = tokens[position];
-            while (factor is not null && position < tokens.length && IsFactor(current.type))
+            while (factor is not null && position < tokens.Length && IsFactor(current.type))
             {
                 if (current.type == Token.Type.Multiply)
                 {
@@ -136,7 +136,7 @@ namespace ExpressionMachine
                     factor = UnsafeNode.Allocate(NodeType.Division, factor, right);
                 }
 
-                if (position == tokens.length)
+                if (position == tokens.Length)
                 {
                     break;
                 }
@@ -149,7 +149,7 @@ namespace ExpressionMachine
 
         private static UnsafeNode* TryReadTerm(ref uint position, USpan<Token> tokens)
         {
-            if (position == tokens.length)
+            if (position == tokens.Length)
             {
                 Token lastToken = tokens[position - 1];
                 throw new FormatException($"Expected a token after {lastToken}.");
@@ -173,14 +173,14 @@ namespace ExpressionMachine
             {
                 uint start = current.start;
                 uint length = current.length;
-                if (position < tokens.length)
+                if (position < tokens.Length)
                 {
                     var next = tokens[position];
                     if (next.type == Token.Type.OpenParenthesis)
                     {
                         position++;
                         UnsafeNode* argument = TryParseExpression(ref position, tokens);
-                        if (position < tokens.length)
+                        if (position < tokens.Length)
                         {
                             current = tokens[position];
                             if (current.type != Token.Type.CloseParenthesis)
