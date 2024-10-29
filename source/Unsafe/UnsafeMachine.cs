@@ -109,7 +109,7 @@ namespace ExpressionMachine.Unsafe
             USpan<char> currentSource = machine->source.AsSpan();
             if (!newSource.SequenceEqual(currentSource))
             {
-                machine->source.Resize(newSource.Length);
+                machine->source.Length = newSource.Length;
                 USpan<char> span = machine->source.AsSpan();
                 newSource.CopyTo(span);
 
