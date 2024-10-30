@@ -1,16 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using Collections;
+using System.Collections.Generic;
 using Unmanaged;
-using Unmanaged.Collections;
 
 namespace ExpressionMachine.Unsafe
 {
     public unsafe struct UnsafeMachine
     {
         private TokenMap map;
-        private UnmanagedArray<char> source;
-        private UnmanagedDictionary<int, float> variables;
-        private UnmanagedDictionary<int, Function> functions;
-        private UnmanagedList<Token> tokens;
+        private Array<char> source;
+        private Collections.Dictionary<int, float> variables;
+        private Collections.Dictionary<int, Function> functions;
+        private Collections.List<Token> tokens;
         private Node tree;
 
         public static UnsafeMachine* Allocate()

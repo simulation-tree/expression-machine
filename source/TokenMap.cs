@@ -1,13 +1,13 @@
-﻿using System;
+﻿using Collections;
+using System;
 using Unmanaged;
-using Unmanaged.Collections;
 
 namespace ExpressionMachine
 {
     public readonly struct TokenMap : IDisposable
     {
-        private readonly UnmanagedArray<char> tokens;
-        private readonly UnmanagedList<char> ignore;
+        private readonly Array<char> tokens;
+        private readonly List<char> ignore;
 
         /// <summary>
         /// Individual characters that correspond to the <see cref="Token.Type"/>.

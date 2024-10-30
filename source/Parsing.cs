@@ -1,27 +1,27 @@
-﻿using ExpressionMachine.Unsafe;
+﻿using Collections;
+using ExpressionMachine.Unsafe;
 using System;
 using Unmanaged;
-using Unmanaged.Collections;
 
 namespace ExpressionMachine
 {
     public static unsafe class Parsing
     {
-        public static unsafe UnmanagedList<Token> GetTokens(USpan<char> expression)
+        public static unsafe List<Token> GetTokens(USpan<char> expression)
         {
-            UnmanagedList<Token> tokens = new();
+            List<Token> tokens = new();
             GetTokens(expression, tokens);
             return tokens;
         }
 
-        public static unsafe UnmanagedList<Token> GetTokens(USpan<char> expression, TokenMap map)
+        public static unsafe List<Token> GetTokens(USpan<char> expression, TokenMap map)
         {
-            UnmanagedList<Token> tokens = new();
+            List<Token> tokens = new();
             GetTokens(expression, map, tokens);
             return tokens;
         }
 
-        public static unsafe void GetTokens(USpan<char> expression, UnmanagedList<Token> tokens)
+        public static unsafe void GetTokens(USpan<char> expression, List<Token> tokens)
         {
             using TokenMap map = new();
             GetTokens(expression, map, tokens);
@@ -30,7 +30,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Populates the given list with tokens from the given expression.
         /// </summary>
-        public static unsafe void GetTokens(USpan<char> expression, TokenMap map, UnmanagedList<Token> tokens)
+        public static unsafe void GetTokens(USpan<char> expression, TokenMap map, List<Token> tokens)
         {
             uint position = 0;
             uint length = expression.Length;
