@@ -57,49 +57,49 @@ namespace ExpressionMachine.Unsafe
         public static float GetVariable(UnsafeMachine* machine, USpan<char> name)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.Get(name);
+            int hash = new FixedString(name).GetHashCode();
             if (machine->variables.TryGetValue(hash, out float value))
             {
                 return value;
             }
             else
             {
-                throw new KeyNotFoundException($"Variable '{name.ToString()}' not found.");
+                throw new KeyNotFoundException($"Variable '{name.ToString()}' not found");
             }
         }
 
         public static bool ContainsVariable(UnsafeMachine* machine, USpan<char> name)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.Get(name);
+            int hash = new FixedString(name).GetHashCode();
             return machine->variables.ContainsKey(hash);
         }
 
         public static void SetVariable(UnsafeMachine* machine, USpan<char> name, float value)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.Get(name);
+            int hash = new FixedString(name).GetHashCode();
             machine->variables.AddOrSet(hash, value);
         }
 
         public static void SetFunction(UnsafeMachine* machine, USpan<char> name, Function function)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.Get(name);
+            int hash = new FixedString(name).GetHashCode();
             machine->functions.AddOrSet(hash, function);
         }
 
         public static float InvokeFunction(UnsafeMachine* machine, USpan<char> name, float value)
         {
             Allocations.ThrowIfNull(machine);
-            int hash = Djb2Hash.Get(name);
+            int hash = new FixedString(name).GetHashCode();
             if (machine->functions.TryGetValue(hash, out Function function))
             {
                 return function.Invoke(value);
             }
             else
             {
-                throw new KeyNotFoundException($"Function '{name.ToString()}' not found.");
+                throw new KeyNotFoundException($"Function '{name.ToString()}' not found");
             }
         }
 

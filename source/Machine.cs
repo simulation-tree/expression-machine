@@ -51,7 +51,7 @@ namespace ExpressionMachine
 
         public readonly void SetSource(FixedString newSource)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.MaxLength];
+            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
             uint length = newSource.CopyTo(buffer);
             SetSource(buffer.Slice(0, length));
         }
@@ -73,7 +73,7 @@ namespace ExpressionMachine
 
         public readonly float GetVariable(FixedString name)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.MaxLength];
+            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
             uint length = name.CopyTo(buffer);
             return GetVariable(buffer.Slice(0, length));
         }
@@ -90,7 +90,7 @@ namespace ExpressionMachine
 
         public readonly bool ContainsVariable(FixedString name)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.MaxLength];
+            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
             uint length = name.CopyTo(buffer);
             return ContainsVariable(buffer.Slice(0, length));
         }
@@ -107,7 +107,7 @@ namespace ExpressionMachine
 
         public readonly void SetVariable(FixedString name, float value)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.MaxLength];
+            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
             uint length = name.CopyTo(buffer);
             SetVariable(buffer.Slice(0, length), value);
         }
@@ -135,7 +135,7 @@ namespace ExpressionMachine
 
         public readonly unsafe void SetFunction(FixedString name, delegate* unmanaged<float, float> function)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.MaxLength];
+            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
             uint length = name.CopyTo(buffer);
             SetFunction(buffer.Slice(0, length), function);
         }
