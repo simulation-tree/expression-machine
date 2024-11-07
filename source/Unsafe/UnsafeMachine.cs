@@ -27,7 +27,7 @@ namespace ExpressionMachine.Unsafe
 
         public static bool IsDisposed(UnsafeMachine* machine)
         {
-            return Allocations.IsNull(machine) || machine->tree.IsDisposed || machine->source.IsDisposed;
+            return machine is null;
         }
 
         public static void Free(ref UnsafeMachine* machine)

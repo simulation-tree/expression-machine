@@ -36,7 +36,7 @@ namespace ExpressionMachine.Unsafe
 
         public static bool IsDisposed(UnsafeNode* node)
         {
-            return Allocations.IsNull(node) || node->type == NodeType.Unknown;
+            return node is null;
         }
 
         public static void Free(ref UnsafeNode* node)
@@ -53,7 +53,7 @@ namespace ExpressionMachine.Unsafe
             else if (type == NodeType.Call)
             {
                 UnsafeNode* argument = (UnsafeNode*)node->c;
-                if (!Allocations.IsNull(argument))
+                if (argument != null)
                 {
                     Free(ref argument);
                 }
@@ -109,7 +109,7 @@ namespace ExpressionMachine.Unsafe
 
         public static UnsafeNode* Allocate(uint start, uint length)
         {
-            void* node = Allocations.Allocate((uint)sizeof(nint) * 4);
+            void* node = Allocations.Allocate(TypeInfo<nint>.size * 4);
             nint* span = (nint*)node;
             span[0] = (nint)NodeType.Value;
             span[1] = (nint)start;
@@ -120,7 +120,7 @@ namespace ExpressionMachine.Unsafe
 
         public static UnsafeNode* Allocate(NodeType type, UnsafeNode* left, UnsafeNode* right)
         {
-            void* node = Allocations.Allocate((uint)sizeof(nint) * 4);
+            void* node = Allocations.Allocate(TypeInfo<nint>.size * 4);
             nint* span = (nint*)node;
             span[0] = (nint)type;
             span[1] = (nint)left;
@@ -131,7 +131,7 @@ namespace ExpressionMachine.Unsafe
 
         public static UnsafeNode* Allocate(uint start, uint length, UnsafeNode* argument)
         {
-            void* node = Allocations.Allocate((uint)sizeof(nint) * 4);
+            void* node = Allocations.Allocate(TypeInfo<nint>.size * 4);
             nint* span = (nint*)node;
             span[0] = (nint)NodeType.Call;
             span[1] = (nint)start;
