@@ -58,7 +58,7 @@ namespace ExpressionMachine
 
         public readonly void SetSource(string newSource)
         {
-            SetSource(newSource.AsUSpan());
+            SetSource(newSource.AsSpan());
         }
 
         public readonly void ClearVariables()
@@ -80,7 +80,7 @@ namespace ExpressionMachine
 
         public readonly float GetVariable(string name)
         {
-            return GetVariable(name.AsUSpan());
+            return GetVariable(name.AsSpan());
         }
 
         public readonly bool ContainsVariable(USpan<char> name)
@@ -97,7 +97,7 @@ namespace ExpressionMachine
 
         public readonly bool ContainsVariable(string name)
         {
-            return ContainsVariable(name.AsUSpan());
+            return ContainsVariable(name.AsSpan());
         }
 
         public readonly void SetVariable(USpan<char> name, float value)
@@ -114,7 +114,7 @@ namespace ExpressionMachine
 
         public readonly void SetVariable(string name, float value)
         {
-            SetVariable(name.AsUSpan(), value);
+            SetVariable(name.AsSpan(), value);
         }
 
         public readonly USpan<char> GetToken(Token token)
@@ -142,7 +142,7 @@ namespace ExpressionMachine
 
         public readonly unsafe void SetFunction(string name, delegate* unmanaged<float, float> function)
         {
-            SetFunction(name.AsUSpan(), function);
+            SetFunction(name.AsSpan(), function);
         }
 
         public readonly float InvokeFunction(USpan<char> name, float value)

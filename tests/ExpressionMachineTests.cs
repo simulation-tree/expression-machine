@@ -6,7 +6,7 @@ using Unmanaged;
 
 namespace ExpressionMachine.Tests
 {
-    public class ExpressionMachineTests
+    public unsafe class ExpressionMachineTests
     {
         [TearDown]
         public void CleanUp()
@@ -37,7 +37,7 @@ namespace ExpressionMachine.Tests
         }
 
         [Test]
-        public unsafe void ChangeSource()
+        public void ChangeSource()
         {
             using Machine reusable = new();
             reusable.SetVariable("value", 1024);
@@ -57,7 +57,7 @@ namespace ExpressionMachine.Tests
         }
 
         [Test]
-        public unsafe void AnchorExample()
+        public void AnchorExample()
         {
             using Machine horizontal = new("width * 0.5");
             horizontal.SetVariable("width", 800);
@@ -79,7 +79,7 @@ namespace ExpressionMachine.Tests
         }
 
         [Test]
-        public unsafe void EvaluateWithCustomFunction()
+        public void EvaluateWithCustomFunction()
         {
             using Machine expression = new("do(10 * 0.5) + wow()");
             expression.SetFunction("do", &Do);
@@ -105,12 +105,8 @@ namespace ExpressionMachine.Tests
             using Machine vm = new();
             float radius = 4f;
             vm.SetVariable("radius", radius);
-
-            unsafe
-            {
-                vm.SetFunction("cos", &Cos);
-                vm.SetFunction("sin", &Sin);
-            }
+            vm.SetFunction("cos", &Cos);
+            vm.SetFunction("sin", &Sin);
 
             List<Vector2> positions = new();
             for (uint i = 0; i < 360; i++)
@@ -151,7 +147,7 @@ namespace ExpressionMachine.Tests
         [Test]
         public void UseNodes()
         {
-            USpan<char> source = "2+5".AsUSpan();
+            USpan<char> source = "2+5".AsSpan();
             Node a = new(0, 1);
             Assert.That(a.Type, Is.EqualTo(NodeType.Value));
             Assert.That((int)a.A, Is.EqualTo(0));

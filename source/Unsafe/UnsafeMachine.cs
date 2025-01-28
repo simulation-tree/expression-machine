@@ -33,6 +33,7 @@ namespace ExpressionMachine.Unsafe
         public static void Free(ref UnsafeMachine* machine)
         {
             Allocations.ThrowIfNull(machine);
+
             machine->tokens.Dispose();
             machine->map.Dispose();
             machine->functions.Dispose();
@@ -45,18 +46,21 @@ namespace ExpressionMachine.Unsafe
         public static void ClearFunctions(UnsafeMachine* machine)
         {
             Allocations.ThrowIfNull(machine);
+
             machine->functions.Clear();
         }
 
         public static void ClearVariables(UnsafeMachine* machine)
         {
             Allocations.ThrowIfNull(machine);
+
             machine->variables.Clear();
         }
 
         public static float GetVariable(UnsafeMachine* machine, USpan<char> name)
         {
             Allocations.ThrowIfNull(machine);
+
             int hash = new FixedString(name).GetHashCode();
             if (machine->variables.TryGetValue(hash, out float value))
             {
@@ -71,6 +75,7 @@ namespace ExpressionMachine.Unsafe
         public static bool ContainsVariable(UnsafeMachine* machine, USpan<char> name)
         {
             Allocations.ThrowIfNull(machine);
+
             int hash = new FixedString(name).GetHashCode();
             return machine->variables.ContainsKey(hash);
         }
@@ -78,6 +83,7 @@ namespace ExpressionMachine.Unsafe
         public static void SetVariable(UnsafeMachine* machine, USpan<char> name, float value)
         {
             Allocations.ThrowIfNull(machine);
+
             int hash = new FixedString(name).GetHashCode();
             machine->variables.AddOrSet(hash, value);
         }
@@ -85,6 +91,7 @@ namespace ExpressionMachine.Unsafe
         public static void SetFunction(UnsafeMachine* machine, USpan<char> name, Function function)
         {
             Allocations.ThrowIfNull(machine);
+
             int hash = new FixedString(name).GetHashCode();
             machine->functions.AddOrSet(hash, function);
         }
@@ -92,6 +99,7 @@ namespace ExpressionMachine.Unsafe
         public static float InvokeFunction(UnsafeMachine* machine, USpan<char> name, float value)
         {
             Allocations.ThrowIfNull(machine);
+
             int hash = new FixedString(name).GetHashCode();
             if (machine->functions.TryGetValue(hash, out Function function))
             {
@@ -106,6 +114,7 @@ namespace ExpressionMachine.Unsafe
         public static void SetSource(UnsafeMachine* machine, USpan<char> newSource)
         {
             Allocations.ThrowIfNull(machine);
+
             USpan<char> currentSource = machine->source.AsSpan();
             if (!newSource.SequenceEqual(currentSource))
             {
@@ -124,20 +133,23 @@ namespace ExpressionMachine.Unsafe
         public static USpan<char> GetSource(UnsafeMachine* machine)
         {
             Allocations.ThrowIfNull(machine);
+
             return machine->source.AsSpan();
         }
 
         public static USpan<char> GetToken(UnsafeMachine* machine, uint start, uint length)
         {
             Allocations.ThrowIfNull(machine);
+
             return machine->source.AsSpan().Slice(start, length);
         }
 
         public static float Evaluate(UnsafeMachine* machine)
         {
             Allocations.ThrowIfNull(machine);
+
             USpan<char> source = machine->source.AsSpan();
-            if (float.TryParse(source.AsSystemSpan(), out float result))
+            if (float.TryParse(source, out float result))
             {
                 return result;
             }

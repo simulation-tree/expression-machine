@@ -19,8 +19,7 @@
             Multiply,
             Divide,
             OpenParenthesis,
-            CloseParenthesis,
-            Length
+            CloseParenthesis
         }
     }
 }

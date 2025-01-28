@@ -1,13 +1,12 @@
-﻿using Collections;
-using System;
+﻿using System;
 using Unmanaged;
 
 namespace ExpressionMachine
 {
     public readonly struct TokenMap : IDisposable
     {
-        private readonly Array<char> tokens;
-        private readonly List<char> ignore;
+        private readonly Text tokens;
+        private readonly Text ignore;
 
         /// <summary>
         /// Individual characters that correspond to the <see cref="Token.Type"/>.
@@ -21,15 +20,12 @@ namespace ExpressionMachine
 
         public readonly bool IsDisposed => tokens.IsDisposed;
 
-        public readonly char this[Token.Type index]
-        {
-            get => tokens[(uint)index];
-            set => tokens[(uint)index] = value;
-        }
+        public readonly ref char this[Token.Type index] => ref tokens[(uint)index];
 
         public TokenMap()
         {
-            tokens = new((uint)Token.Type.Length);
+            Token.Type[] options = Enum.GetValues<Token.Type>();
+            tokens = new((uint)options.Length);
             tokens[(uint)Token.Type.Value] = default;
             tokens[(uint)Token.Type.Add] = '+';
             tokens[(uint)Token.Type.Subtract] = '-';
@@ -38,9 +34,9 @@ namespace ExpressionMachine
             tokens[(uint)Token.Type.OpenParenthesis] = '(';
             tokens[(uint)Token.Type.CloseParenthesis] = ')';
 
-            ignore = new(2);
-            ignore.Add(' ');
-            ignore.Add('\t');
+            ignore = new(0);
+            ignore.Append(' ');
+            ignore.Append('\t');
         }
 
         public readonly void Dispose()
