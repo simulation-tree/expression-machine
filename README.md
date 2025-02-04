@@ -1,46 +1,38 @@
 # Expression Machine
+
 Library for evaluating logic expressions at runtime.
 
-### Exceptions and memory Leaks (wip)
-This library is unmanaged, and currently doesn't have tools to handle compilation
-or parsing errors, which will cause memory leaks. This means all given expressions
-must be perfect when given to a virtual machine.
+### Features
 
-### Characteristics
 - Basic arithmetic operations (addition, subtraction, multiplication, division)
 - Parentheses for grouping operations
 - Injectable `float` variables
 - Injectable functions accepting one or no input arguments
 
-<details>
-    <summary>Usage example</summary>
-    
-Below is an example that returns coordinates for 360 points of a circle with either
-a radius or a diameter as input. While reusing the same machine instance by modifying
-its source and variables.
-```csharp
-public List<Vector2> GetCirclePositions(float value, bool isDiameter)
+### Example
+
+Below is an example that fills a destination span with coordinates for the points of a circle,
+with either a radius or a diameter as input. While reusing the same machine instance by modifying
+its source and variables, and re-evaluating the expression.
+```cs
+public unsafe void GetCirclePositions(float value, bool isDiameter, USpan<Vector2> positions)
 {
-    List<Vector2> positions = new();
     using Machine vm = new();
     vm.SetVariable("value", value);
     vm.SetVariable("multiplier", isDiameter ? 2 : 1);
+    vm.SetFunction("cos", &Cos);
+    vm.SetFunction("sin", &Sin);
 
-    unsafe
+    uint length = positions.Length;
+    for (int i = 0; i < length; i++)
     {
-        vm.SetFunction("cos", &Cos);
-        vm.SetFunction("sin", &Sin);
-    }
-
-    for (int i = 0; i < 360; i++)
-    {
-        float t = i * MathF.PI / 180;
+        float t = i * MathF.PI / (length * 0.5f);
         vm.SetVariable("t", t);
         vm.SetSource("cos(t) * (value * multiplier)");
         float x = vm.Evaluate();    
         vm.SetSource("sin(t) * (value * multiplier)");
         float y = vm.Evaluate();
-        positions.Add(new Vector2(x, y));
+        positions[i] = new Vector2(x, y);
     }
 
     [UnmanagedCallersOnly]
@@ -54,14 +46,11 @@ public List<Vector2> GetCirclePositions(float value, bool isDiameter)
     {
         return MathF.Sin(value);
     }
-
-    return positions;
 }
 ```
 
-</details>
-
 ### Contributions and direction
+
 This library is small and isn't mean to substitute things like Lua or other languages within interpreters.
 Instead, it's more fitting as a base to extend upon and branch away. And it should remain as unmanaged as it is.
 Without extending it, it's most useful fruit is allowing your code to express different values, all through a
