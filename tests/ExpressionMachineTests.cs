@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Collections;
+using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Unmanaged;
+using Unmanaged.Tests;
 
 namespace ExpressionMachine.Tests
 {
-    public unsafe class ExpressionMachineTests
+    public unsafe class ExpressionMachineTests : UnmanagedTests
     {
-        [TearDown]
-        public void CleanUp()
-        {
-            Allocations.ThrowIfAny();
-        }
-
         [Test]
         public void EvaluateComplicatedExpression()
         {
@@ -108,7 +103,7 @@ namespace ExpressionMachine.Tests
             vm.SetFunction("cos", &Cos);
             vm.SetFunction("sin", &Sin);
 
-            List<Vector2> positions = new();
+            using List<Vector2> positions = new();
             for (uint i = 0; i < 360; i++)
             {
                 float t = i * MathF.PI / 180;
@@ -120,7 +115,7 @@ namespace ExpressionMachine.Tests
                 positions.Add(new Vector2(x, y));
             }
 
-            List<Vector2> otherPositions = new();
+            using List<Vector2> otherPositions = new();
             for (uint i = 0; i < 360; i++)
             {
                 float t = i * MathF.PI / 180;
@@ -129,7 +124,10 @@ namespace ExpressionMachine.Tests
                 otherPositions.Add(new Vector2(x, y));
             }
 
-            Assert.That(positions, Is.EqualTo(otherPositions));
+            for (uint i = 0; i < 360; i++)
+            {
+                Assert.That(positions[i], Is.EqualTo(otherPositions[i]));
+            }
 
             [UnmanagedCallersOnly]
             static float Cos(float value)
@@ -147,7 +145,6 @@ namespace ExpressionMachine.Tests
         [Test]
         public void UseNodes()
         {
-            USpan<char> source = "2+5".AsSpan();
             Node a = new(0, 1);
             Assert.That(a.Type, Is.EqualTo(NodeType.Value));
             Assert.That((int)a.A, Is.EqualTo(0));

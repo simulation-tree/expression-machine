@@ -1,5 +1,4 @@
 ﻿using Collections;
-using ExpressionMachine.Unsafe;
 using System;
 using Unmanaged;
 
@@ -7,21 +6,21 @@ namespace ExpressionMachine
 {
     public static unsafe class Parsing
     {
-        public static unsafe List<Token> GetTokens(USpan<char> expression)
+        public static List<Token> GetTokens(USpan<char> expression)
         {
             List<Token> tokens = new();
             GetTokens(expression, tokens);
             return tokens;
         }
 
-        public static unsafe List<Token> GetTokens(USpan<char> expression, TokenMap map)
+        public static List<Token> GetTokens(USpan<char> expression, TokenMap map)
         {
             List<Token> tokens = new();
             GetTokens(expression, map, tokens);
             return tokens;
         }
 
-        public static unsafe void GetTokens(USpan<char> expression, List<Token> tokens)
+        public static void GetTokens(USpan<char> expression, List<Token> tokens)
         {
             using TokenMap map = new();
             GetTokens(expression, map, tokens);
@@ -30,7 +29,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Populates the given list with tokens from the given expression.
         /// </summary>
-        public static unsafe void GetTokens(USpan<char> expression, TokenMap map, List<Token> tokens)
+        public static void GetTokens(USpan<char> expression, TokenMap map, List<Token> tokens)
         {
             uint position = 0;
             uint length = expression.Length;
@@ -77,9 +76,9 @@ namespace ExpressionMachine
             return new(TryParseExpression(ref position, tokens));
         }
 
-        private static UnsafeNode* TryParseExpression(ref uint position, USpan<Token> tokens)
+        private static Node.Implementation* TryParseExpression(ref uint position, USpan<Token> tokens)
         {
-            UnsafeNode* result = TryReadFactor(ref position, tokens);
+            Node.Implementation* result = TryReadFactor(ref position, tokens);
             if (position == tokens.Length)
             {
                 return result;
@@ -91,14 +90,14 @@ namespace ExpressionMachine
                 if (current.type == Token.Type.Add)
                 {
                     position++;
-                    UnsafeNode* right = TryReadFactor(ref position, tokens);
-                    result = UnsafeNode.Allocate(NodeType.Addition, result, right);
+                    Node.Implementation* right = TryReadFactor(ref position, tokens);
+                    result = Node.Implementation.Allocate(NodeType.Addition, result, right);
                 }
                 else if (current.type == Token.Type.Subtract)
                 {
                     position++;
-                    UnsafeNode* right = TryReadFactor(ref position, tokens);
-                    result = UnsafeNode.Allocate(NodeType.Subtraction, result, right);
+                    Node.Implementation* right = TryReadFactor(ref position, tokens);
+                    result = Node.Implementation.Allocate(NodeType.Subtraction, result, right);
                 }
 
                 if (position == tokens.Length)
@@ -112,9 +111,9 @@ namespace ExpressionMachine
             return result;
         }
 
-        private static UnsafeNode* TryReadFactor(ref uint position, USpan<Token> tokens)
+        private static Node.Implementation* TryReadFactor(ref uint position, USpan<Token> tokens)
         {
-            UnsafeNode* factor = TryReadTerm(ref position, tokens);
+            Node.Implementation* factor = TryReadTerm(ref position, tokens);
             if (position == tokens.Length)
             {
                 return factor;
@@ -126,14 +125,14 @@ namespace ExpressionMachine
                 if (current.type == Token.Type.Multiply)
                 {
                     position++;
-                    UnsafeNode* right = TryReadTerm(ref position, tokens);
-                    factor = UnsafeNode.Allocate(NodeType.Multiplication, factor, right);
+                    Node.Implementation* right = TryReadTerm(ref position, tokens);
+                    factor = Node.Implementation.Allocate(NodeType.Multiplication, factor, right);
                 }
                 else if (current.type == Token.Type.Divide)
                 {
                     position++;
-                    UnsafeNode* right = TryReadTerm(ref position, tokens);
-                    factor = UnsafeNode.Allocate(NodeType.Division, factor, right);
+                    Node.Implementation* right = TryReadTerm(ref position, tokens);
+                    factor = Node.Implementation.Allocate(NodeType.Division, factor, right);
                 }
 
                 if (position == tokens.Length)
@@ -147,23 +146,23 @@ namespace ExpressionMachine
             return factor;
         }
 
-        private static UnsafeNode* TryReadTerm(ref uint position, USpan<Token> tokens)
+        private static Node.Implementation* TryReadTerm(ref uint position, USpan<Token> tokens)
         {
             if (position == tokens.Length)
             {
                 Token lastToken = tokens[position - 1];
-                throw new FormatException($"Expected a token after {lastToken}.");
+                throw new FormatException($"Expected a token after {lastToken}");
             }
 
             Token current = tokens[position];
             position++;
             if (current.type == Token.Type.OpenParenthesis)
             {
-                UnsafeNode* term = TryParseExpression(ref position, tokens);
+                Node.Implementation* term = TryParseExpression(ref position, tokens);
                 current = tokens[position];
                 if (current.type != Token.Type.CloseParenthesis)
                 {
-                    throw new FormatException("Expected closing parenthesis.");
+                    throw new FormatException("Expected closing parenthesis");
                 }
 
                 position++;
@@ -179,23 +178,23 @@ namespace ExpressionMachine
                     if (next.type == Token.Type.OpenParenthesis)
                     {
                         position++;
-                        UnsafeNode* argument = TryParseExpression(ref position, tokens);
+                        Node.Implementation* argument = TryParseExpression(ref position, tokens);
                         if (position < tokens.Length)
                         {
                             current = tokens[position];
                             if (current.type != Token.Type.CloseParenthesis)
                             {
-                                throw new FormatException("Expected closing parenthesis.");
+                                throw new FormatException("Expected closing parenthesis");
                             }
 
                             position++;
                         }
 
-                        return UnsafeNode.Allocate(start, length, argument);
+                        return Node.Implementation.Allocate(start, length, argument);
                     }
                 }
 
-                return UnsafeNode.Allocate(start, length);
+                return Node.Implementation.Allocate(start, length);
             }
             else
             {

@@ -25,6 +25,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\unmanaged\tests\Unmanaged.Tests.csproj" />
 		<ProjectReference Include="..\source\ExpressionMachine.csproj" />
 	</ItemGroup>
 

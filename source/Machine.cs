@@ -1,52 +1,55 @@
-﻿using ExpressionMachine.Unsafe;
+﻿using Collections;
 using System;
+using System.Diagnostics;
 using Unmanaged;
 
 namespace ExpressionMachine
 {
     public unsafe struct Machine : IDisposable
     {
-        private UnsafeMachine* value;
+        private Implementation* value;
 
-        public readonly USpan<char> Source => UnsafeMachine.GetSource(value);
-        public readonly bool IsDisposed => UnsafeMachine.IsDisposed(value);
+        public readonly USpan<char> Source => Implementation.GetSource(value);
+        public readonly bool IsDisposed => value is null;
 
+#if NET
         public Machine()
         {
-            value = UnsafeMachine.Allocate();
+            value = Implementation.Allocate();
         }
+#endif
 
-        public Machine(UnsafeMachine* value)
+        public Machine(Implementation* value)
         {
             this.value = value;
         }
 
         public Machine(USpan<char> source)
         {
-            value = UnsafeMachine.Allocate();
+            value = Implementation.Allocate();
             SetSource(source);
         }
 
         public Machine(FixedString source)
         {
-            value = UnsafeMachine.Allocate();
+            value = Implementation.Allocate();
             SetSource(source);
         }
 
         public Machine(string source)
         {
-            value = UnsafeMachine.Allocate();
+            value = Implementation.Allocate();
             SetSource(source);
         }
 
         public void Dispose()
         {
-            UnsafeMachine.Free(ref value);
+            Implementation.Free(ref value);
         }
 
         public readonly void SetSource(USpan<char> newSource)
         {
-            UnsafeMachine.SetSource(value, newSource);
+            Implementation.SetSource(value, newSource);
         }
 
         public readonly void SetSource(FixedString newSource)
@@ -63,12 +66,12 @@ namespace ExpressionMachine
 
         public readonly void ClearVariables()
         {
-            UnsafeMachine.ClearVariables(value);
+            Implementation.ClearVariables(value);
         }
 
         public readonly float GetVariable(USpan<char> name)
         {
-            return UnsafeMachine.GetVariable(value, name);
+            return Implementation.GetVariable(value, name);
         }
 
         public readonly float GetVariable(FixedString name)
@@ -85,7 +88,7 @@ namespace ExpressionMachine
 
         public readonly bool ContainsVariable(USpan<char> name)
         {
-            return UnsafeMachine.ContainsVariable(value, name);
+            return Implementation.ContainsVariable(value, name);
         }
 
         public readonly bool ContainsVariable(FixedString name)
@@ -102,7 +105,7 @@ namespace ExpressionMachine
 
         public readonly void SetVariable(USpan<char> name, float value)
         {
-            UnsafeMachine.SetVariable(this.value, name, value);
+            Implementation.SetVariable(this.value, name, value);
         }
 
         public readonly void SetVariable(FixedString name, float value)
@@ -119,18 +122,18 @@ namespace ExpressionMachine
 
         public readonly USpan<char> GetToken(Token token)
         {
-            return UnsafeMachine.GetToken(value, token.start, token.length);
+            return Implementation.GetToken(value, token.start, token.length);
         }
 
         public readonly USpan<char> GetToken(uint start, uint length)
         {
-            return UnsafeMachine.GetToken(value, start, length);
+            return Implementation.GetToken(value, start, length);
         }
 
         public readonly unsafe void SetFunction(USpan<char> name, delegate* unmanaged<float, float> function)
         {
             Function f = new(function);
-            UnsafeMachine.SetFunction(value, name, f);
+            Implementation.SetFunction(value, name, f);
         }
 
         public readonly unsafe void SetFunction(FixedString name, delegate* unmanaged<float, float> function)
@@ -147,12 +150,172 @@ namespace ExpressionMachine
 
         public readonly float InvokeFunction(USpan<char> name, float value)
         {
-            return UnsafeMachine.InvokeFunction(this.value, name, value);
+            return Implementation.InvokeFunction(this.value, name, value);
         }
 
         public readonly float Evaluate()
         {
-            return UnsafeMachine.Evaluate(value);
+            return Implementation.Evaluate(value);
+        }
+
+        public struct Implementation
+        {
+            private TokenMap map;
+            private Text source;
+            private Dictionary<int, float> variables;
+            private Dictionary<int, Function> functions;
+            private List<Token> tokens;
+            private Node tree;
+
+            public static Implementation* Allocate()
+            {
+                ref Implementation machine = ref Allocations.Allocate<Implementation>();
+                machine.map = new();
+                machine.source = new();
+                machine.variables = new();
+                machine.functions = new();
+                machine.tokens = new();
+                machine.tree = new();
+                fixed (Implementation* pointer = &machine)
+                {
+                    return pointer;
+                }
+            }
+
+            public static void Free(ref Implementation* machine)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                machine->tokens.Dispose();
+                machine->map.Dispose();
+                machine->functions.Dispose();
+                machine->variables.Dispose();
+                machine->source.Dispose();
+                machine->tree.Dispose();
+                Allocations.Free(ref machine);
+            }
+
+            public static void ClearFunctions(Implementation* machine)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                machine->functions.Clear();
+            }
+
+            public static void ClearVariables(Implementation* machine)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                machine->variables.Clear();
+            }
+
+            public static float GetVariable(Implementation* machine, USpan<char> name)
+            {
+                Allocations.ThrowIfNull(machine);
+                ThrowIfVariableIsMissing(machine, name);
+
+                int hash = new FixedString(name).GetHashCode();
+                machine->variables.TryGetValue(hash, out float value);
+                return value;
+            }
+
+            public static bool ContainsVariable(Implementation* machine, USpan<char> name)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                int hash = new FixedString(name).GetHashCode();
+                return machine->variables.ContainsKey(hash);
+            }
+
+            public static void SetVariable(Implementation* machine, USpan<char> name, float value)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                int hash = new FixedString(name).GetHashCode();
+                machine->variables.AddOrSet(hash, value);
+            }
+
+            public static void SetFunction(Implementation* machine, USpan<char> name, Function function)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                int hash = new FixedString(name).GetHashCode();
+                machine->functions.AddOrSet(hash, function);
+            }
+
+            public static float InvokeFunction(Implementation* machine, USpan<char> name, float value)
+            {
+                Allocations.ThrowIfNull(machine);
+                ThrowIfFunctionIsMissing(machine, name);
+
+                int hash = new FixedString(name).GetHashCode();
+                machine->functions.TryGetValue(hash, out Function function);
+                return function.Invoke(value);
+            }
+
+            public static void SetSource(Implementation* machine, USpan<char> newSource)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                USpan<char> currentSource = machine->source.AsSpan();
+                if (!newSource.SequenceEqual(currentSource))
+                {
+                    machine->source.CopyFrom(newSource);
+
+                    machine->tokens.Clear();
+                    Parsing.GetTokens(newSource, machine->map, machine->tokens);
+
+                    machine->tree.Dispose();
+                    machine->tree = Parsing.GetTree(machine->tokens.AsSpan());
+                }
+            }
+
+            public static USpan<char> GetSource(Implementation* machine)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                return machine->source.AsSpan();
+            }
+
+            public static USpan<char> GetToken(Implementation* machine, uint start, uint length)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                return machine->source.AsSpan().Slice(start, length);
+            }
+
+            public static float Evaluate(Implementation* machine)
+            {
+                Allocations.ThrowIfNull(machine);
+
+                USpan<char> source = machine->source.AsSpan();
+                if (float.TryParse(source, out float result))
+                {
+                    return result;
+                }
+                else
+                {
+                    return machine->tree.Evaluate(new(machine));
+                }
+            }
+
+            [Conditional("DEBUG")]
+            private static void ThrowIfVariableIsMissing(Implementation* machine, USpan<char> name)
+            {
+                if (!ContainsVariable(machine, name))
+                {
+                    throw new InvalidOperationException($"Variable `{name.ToString()}` not found");
+                }
+            }
+
+            [Conditional("DEBUG")]
+            private static void ThrowIfFunctionIsMissing(Implementation* machine, USpan<char> name)
+            {
+                if (!machine->functions.ContainsKey(new FixedString(name).GetHashCode()))
+                {
+                    throw new InvalidOperationException($"Function `{name.ToString()}` not found");
+                }
+            }
         }
     }
 }
