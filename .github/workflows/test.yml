@@ -1,42 +1,61 @@
 name: Test
 
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**/*.cs'
+      - '**/*.csproj'
+      - '.github/workflows/test.yml'
+    branches:
+      - main
+      - dev
+      - dev/**
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: expression-machine/tests
+    permissions:
+      statuses: write
+      checks: write
+      contents: write
+      pull-requests: write
+      actions: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.2
         with:
-          path: expression-machine
-
-      - name: Pull `unmanaged` dependency
+          path: ${{ github.event.repository.name }}
+            
+      - name: Checkout `unmanaged`
         uses: actions/checkout@v4.1.2
         with:
           repository: game-simulations/unmanaged
           token: ${{ secrets.PAT }}
           path: unmanaged
-
-      - name: Pull `collections` dependency
+      
+      - name: Checkout `collections`
         uses: actions/checkout@v4.1.2
         with:
           repository: game-simulations/collections
           token: ${{ secrets.PAT }}
           path: collections
-      
-      - name: Setup dotnet
+            
+      - name: Setup
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
-      - name: List directory
-        run: ls
-
-      - name: Test project
-        run: dotnet test -c Debug --collect:"XPlat Code Coverage" --results-directory:"TestResults"
+            
+      - name: Test
+        run: dotnet test "${{ github.event.repository.name }}/tests" -c Debug --logger "trx"
+            
+      - name: Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          working-directory: ${{ github.event.repository.name }}
+          name: Report
+          path: 'tests/TestResults/*.trx'
+          reporter: dotnet-trx
+          fail-on-error: false
