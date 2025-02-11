@@ -1,10 +1,12 @@
 ﻿using Collections;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace ExpressionMachine
 {
+    [SkipLocalsInit]
     public unsafe struct Machine : IDisposable
     {
         private Implementation* value;
@@ -54,9 +56,9 @@ namespace ExpressionMachine
 
         public readonly void SetSource(FixedString newSource)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
-            uint length = newSource.CopyTo(buffer);
-            SetSource(buffer.Slice(0, length));
+            USpan<char> nameSpan = stackalloc char[newSource.Length];
+            newSource.CopyTo(nameSpan);
+            SetSource(nameSpan);
         }
 
         public readonly void SetSource(string newSource)
@@ -76,9 +78,9 @@ namespace ExpressionMachine
 
         public readonly float GetVariable(FixedString name)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
-            uint length = name.CopyTo(buffer);
-            return GetVariable(buffer.Slice(0, length));
+            USpan<char> nameSpan = stackalloc char[name.Length];
+            name.CopyTo(nameSpan);
+            return GetVariable(nameSpan);
         }
 
         public readonly float GetVariable(string name)
@@ -93,9 +95,9 @@ namespace ExpressionMachine
 
         public readonly bool ContainsVariable(FixedString name)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
-            uint length = name.CopyTo(buffer);
-            return ContainsVariable(buffer.Slice(0, length));
+            USpan<char> nameSpan = stackalloc char[name.Length];
+            name.CopyTo(nameSpan);
+            return ContainsVariable(nameSpan);
         }
 
         public readonly bool ContainsVariable(string name)
@@ -110,9 +112,9 @@ namespace ExpressionMachine
 
         public readonly void SetVariable(FixedString name, float value)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
-            uint length = name.CopyTo(buffer);
-            SetVariable(buffer.Slice(0, length), value);
+            USpan<char> nameSpan = stackalloc char[name.Length];
+            name.CopyTo(nameSpan);
+            SetVariable(nameSpan, value);
         }
 
         public readonly void SetVariable(string name, float value)
@@ -130,20 +132,20 @@ namespace ExpressionMachine
             return Implementation.GetToken(value, start, length);
         }
 
-        public readonly unsafe void SetFunction(USpan<char> name, delegate* unmanaged<float, float> function)
+        public readonly void SetFunction(USpan<char> name, delegate* unmanaged<float, float> function)
         {
             Function f = new(function);
             Implementation.SetFunction(value, name, f);
         }
 
-        public readonly unsafe void SetFunction(FixedString name, delegate* unmanaged<float, float> function)
+        public readonly void SetFunction(FixedString name, delegate* unmanaged<float, float> function)
         {
-            USpan<char> buffer = stackalloc char[(int)FixedString.Capacity];
-            uint length = name.CopyTo(buffer);
-            SetFunction(buffer.Slice(0, length), function);
+            USpan<char> nameSpan = stackalloc char[name.Length];
+            name.CopyTo(nameSpan);
+            SetFunction(nameSpan, function);
         }
 
-        public readonly unsafe void SetFunction(string name, delegate* unmanaged<float, float> function)
+        public readonly void SetFunction(string name, delegate* unmanaged<float, float> function)
         {
             SetFunction(name.AsSpan(), function);
         }
