@@ -1,13 +1,11 @@
 ﻿using Collections;
 using System;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using Unmanaged;
 using Unmanaged.Tests;
 
 namespace ExpressionMachine.Tests
 {
-    public unsafe class ExpressionMachineTests : UnmanagedTests
+    public class ExpressionMachineTests : UnmanagedTests
     {
         [Test]
         public void EvaluateComplicatedExpression()
@@ -36,7 +34,7 @@ namespace ExpressionMachine.Tests
         {
             using Machine reusable = new();
             reusable.SetVariable("value", 1024);
-            reusable.SetFunction("do", &Do);
+            reusable.SetFunction("do", Do);
 
             reusable.SetSource("do(100)");
             Assert.That(reusable.Evaluate(), Is.EqualTo(50));
@@ -44,7 +42,21 @@ namespace ExpressionMachine.Tests
             reusable.SetSource("do(200)");
             Assert.That(reusable.Evaluate(), Is.EqualTo(100));
 
-            [UnmanagedCallersOnly]
+            static float Do(float value)
+            {
+                return value * 0.5f;
+            }
+        }
+
+        [Test]
+        public void InvokeFunctionsManually()
+        {
+            using Machine vm = new();
+            vm.SetFunction("do", Do);
+
+            float result = vm.InvokeFunction("do", 20f);
+            Assert.That(result, Is.EqualTo(10));
+
             static float Do(float value)
             {
                 return value * 0.5f;
@@ -61,12 +73,11 @@ namespace ExpressionMachine.Tests
             using Machine vertical = new("multiply(height) + 50");
             vertical.SetVariable("width", 800);
             vertical.SetVariable("height", 600);
-            vertical.SetFunction("multiply", &Multiply);
+            vertical.SetFunction("multiply", Multiply);
 
             Assert.That(horizontal.Evaluate(), Is.EqualTo(400));
             Assert.That(vertical.Evaluate(), Is.EqualTo(350));
 
-            [UnmanagedCallersOnly]
             static float Multiply(float value)
             {
                 return value * 0.5f;
@@ -77,17 +88,15 @@ namespace ExpressionMachine.Tests
         public void EvaluateWithCustomFunction()
         {
             using Machine expression = new("do(10 * 0.5) + wow()");
-            expression.SetFunction("do", &Do);
-            expression.SetFunction("wow", &Wow);
+            expression.SetFunction("do", Do);
+            expression.SetFunction("wow", Wow);
             Assert.That(expression.Evaluate(), Is.EqualTo(11));
 
-            [UnmanagedCallersOnly]
             static float Do(float value)
             {
                 return value + 1;
             }
 
-            [UnmanagedCallersOnly]
             static float Wow(float value)
             {
                 return 5;
@@ -100,8 +109,8 @@ namespace ExpressionMachine.Tests
             using Machine vm = new();
             float radius = 4f;
             vm.SetVariable("radius", radius);
-            vm.SetFunction("cos", &Cos);
-            vm.SetFunction("sin", &Sin);
+            vm.SetFunction("cos", MathF.Cos);
+            vm.SetFunction("sin", MathF.Sin);
 
             using List<Vector2> positions = new();
             for (uint i = 0; i < 360; i++)
@@ -128,24 +137,12 @@ namespace ExpressionMachine.Tests
             {
                 Assert.That(positions[i], Is.EqualTo(otherPositions[i]));
             }
-
-            [UnmanagedCallersOnly]
-            static float Cos(float value)
-            {
-                return MathF.Cos(value);
-            }
-
-            [UnmanagedCallersOnly]
-            static float Sin(float value)
-            {
-                return MathF.Sin(value);
-            }
         }
 
         [Test]
         public void UseNodes()
         {
-            Node a = new(0, 1);
+            Node a = new(NodeType.Value, 0, 1, default);
             Assert.That(a.Type, Is.EqualTo(NodeType.Value));
             Assert.That((int)a.A, Is.EqualTo(0));
             Assert.That((int)a.B, Is.EqualTo(1));

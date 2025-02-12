@@ -3,60 +3,139 @@ using Unmanaged;
 
 namespace ExpressionMachine
 {
+    /// <summary>
+    /// Represents a node in the expression tree.
+    /// </summary>
     public unsafe struct Node : IDisposable
     {
-        private Implementation* value;
+        private Implementation* node;
 
-        public readonly NodeType Type => Implementation.GetType(value);
-        public readonly nint A => Implementation.GetA(value);
-        public readonly nint B => Implementation.GetB(value);
-        public readonly nint C => Implementation.GetC(value);
-        public readonly bool IsDisposed => value is null;
-        public readonly nint Address => (nint)value;
+        /// <summary>
+        /// Type of the node.
+        /// </summary>
+        public readonly ref NodeType Type
+        {
+            get
+            {
+                Allocations.ThrowIfNull(node);
+
+                return ref node->type;
+            }
+        }
+
+        /// <summary>
+        /// First value of the node.
+        /// </summary>
+        public readonly ref nint A
+        {
+            get
+            {
+                Allocations.ThrowIfNull(node);
+
+                return ref node->a;
+            }
+        }
+
+        /// <summary>
+        /// Second value of the node.
+        /// </summary>
+        public readonly ref nint B
+        {
+            get
+            {
+                Allocations.ThrowIfNull(node);
+
+                return ref node->b;
+            }
+        }
+
+        /// <summary>
+        /// Third value of the node.
+        /// </summary>
+        public readonly ref nint C
+        {
+            get
+            {
+                Allocations.ThrowIfNull(node);
+
+                return ref node->c;
+            }
+        }
+
+        /// <summary>
+        /// Checks if the node has been disposed.
+        /// </summary>
+        public readonly bool IsDisposed => node is null;
+
+        /// <summary>
+        /// Native address of the node.
+        /// </summary>
+        public readonly nint Address => (nint)node;
 
 #if NET
+        /// <summary>
+        /// Creates a new empty node.
+        /// </summary>
         public Node()
         {
-            value = Implementation.Allocate(0, 0);
+            node = Implementation.Allocate(default, default, default, default);
         }
 #endif
 
-        public Node(NodeType type, Node left, Node right)
+        /// <summary>
+        /// Initializes an existing node from the given <paramref name="pointer"/>.
+        /// </summary>
+        public Node(Implementation* pointer)
         {
-            value = Implementation.Allocate(type, (Implementation*)left.Address, (Implementation*)right.Address);
+            this.node = pointer;
         }
 
-        public Node(uint start, uint length)
+        /// <summary>
+        /// Creates a new node with the given <paramref name="type"/>.
+        /// </summary>
+        public Node(NodeType type, nint a, nint b, nint c)
         {
-            value = Implementation.Allocate(start, length);
+            node = Implementation.Allocate(type, a, b, c);
         }
 
-        public Node(uint start, uint length, Node argument)
-        {
-            value = Implementation.Allocate(start, length, (Implementation*)argument.Address);
-        }
-
-        public Node(Implementation* value)
-        {
-            this.value = value;
-        }
-
+        /// <summary>
+        /// Disposes of the node.
+        /// </summary>
         public void Dispose()
         {
-            Implementation.Free(ref value);
+            Implementation.Free(ref node);
         }
 
+        /// <summary>
+        /// Evaluates the node.
+        /// </summary>
         public readonly float Evaluate(Machine vm)
         {
-            return Implementation.Evaluate(value, vm);
+            return Implementation.Evaluate(node, vm);
         }
 
+        /// <summary>
+        /// Clears the node.
+        /// </summary>
+        public readonly void Clear()
+        {
+            Allocations.ThrowIfNull(node);
+
+            node->type = default;
+            node->a = default;
+            node->b = default;
+            node->c = default;
+        }
+
+        /// <summary>
+        /// Implementation type.
+        /// </summary>
         public struct Implementation
         {
-            private NodeType type;
-            private nint a;
-            private nint b;
-            private nint c;
+            internal NodeType type;
+            internal nint a;
+            internal nint b;
+            internal nint c;
 
             private Implementation(NodeType type, nint a, nint b, nint c)
             {
@@ -66,34 +145,9 @@ namespace ExpressionMachine
                 this.c = c;
             }
 
-            public static NodeType GetType(Implementation* node)
-            {
-                Allocations.ThrowIfNull(node);
-
-                return node->type;
-            }
-
-            public static nint GetA(Implementation* node)
-            {
-                Allocations.ThrowIfNull(node);
-
-                return node->a;
-            }
-
-            public static nint GetB(Implementation* node)
-            {
-                Allocations.ThrowIfNull(node);
-
-                return node->b;
-            }
-
-            public static nint GetC(Implementation* node)
-            {
-                Allocations.ThrowIfNull(node);
-
-                return node->c;
-            }
-
+            /// <summary>
+            /// Frees the given <paramref name="node"/>.
+            /// </summary>
             public static void Free(ref Implementation* node)
             {
                 Allocations.ThrowIfNull(node);
@@ -115,13 +169,12 @@ namespace ExpressionMachine
                     }
                 }
 
-                node->type = NodeType.Unknown;
-                node->a = default;
-                node->b = default;
-                node->c = default;
                 Allocations.Free(ref node);
             }
 
+            /// <summary>
+            /// Evaluates the given <paramref name="node"/>.
+            /// </summary>
             public static float Evaluate(Implementation* node, Machine vm)
             {
                 Allocations.ThrowIfNull(node);
@@ -152,6 +205,7 @@ namespace ExpressionMachine
                         Implementation* argument = (Implementation*)node->c;
                         if (argument is null)
                         {
+                            //todo: implement handling of more than 1 arguments
                             return vm.InvokeFunction(token, 0);
                         }
                         else
@@ -164,30 +218,13 @@ namespace ExpressionMachine
                 }
             }
 
-            public static Implementation* Allocate(uint start, uint length)
+            /// <summary>
+            /// Allocates a new node.
+            /// </summary>
+            public static Implementation* Allocate(NodeType type, nint a, nint b, nint c)
             {
                 ref Implementation node = ref Allocations.Allocate<Implementation>();
-                node = new Implementation(NodeType.Value, (nint)start, (nint)length, default);
-                fixed (Implementation* pointer = &node)
-                {
-                    return pointer;
-                }
-            }
-
-            public static Implementation* Allocate(NodeType type, Implementation* left, Implementation* right)
-            {
-                ref Implementation node = ref Allocations.Allocate<Implementation>();
-                node = new Implementation(type, (nint)left, (nint)right, default);
-                fixed (Implementation* pointer = &node)
-                {
-                    return pointer;
-                }
-            }
-
-            public static Implementation* Allocate(uint start, uint length, Implementation* argument)
-            {
-                ref Implementation node = ref Allocations.Allocate<Implementation>();
-                node = new Implementation(NodeType.Call, (nint)start, (nint)length, (nint)argument);
+                node = new Implementation(type, a, b, c);
                 fixed (Implementation* pointer = &node)
                 {
                     return pointer;

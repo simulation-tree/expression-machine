@@ -4,8 +4,14 @@ using Unmanaged;
 
 namespace ExpressionMachine
 {
+    /// <summary>
+    /// Functions to process text into a span of <see cref="Token"/>s.
+    /// </summary>
     public static unsafe class Parsing
     {
+        /// <summary>
+        /// Retrieves a list of <see cref="Token"/>s from the given <paramref name="expression"/>.
+        /// </summary>
         public static List<Token> GetTokens(USpan<char> expression)
         {
             List<Token> tokens = new();
@@ -13,6 +19,9 @@ namespace ExpressionMachine
             return tokens;
         }
 
+        /// <summary>
+        /// Retrieves a list of <see cref="Token"/>s from the given <paramref name="expression"/>.
+        /// </summary>
         public static List<Token> GetTokens(USpan<char> expression, TokenMap map)
         {
             List<Token> tokens = new();
@@ -20,16 +29,19 @@ namespace ExpressionMachine
             return tokens;
         }
 
-        public static void GetTokens(USpan<char> expression, List<Token> tokens)
+        /// <summary>
+        /// Fills the given <paramref name="list"/> list with tokens from the given <paramref name="expression"/>.
+        /// </summary>
+        public static void GetTokens(USpan<char> expression, List<Token> list)
         {
             using TokenMap map = new();
-            GetTokens(expression, map, tokens);
+            GetTokens(expression, map, list);
         }
 
         /// <summary>
-        /// Populates the given list with tokens from the given expression.
+        /// Populates the given <paramref name="list"/> with tokens from the given <paramref name="expression"/>.
         /// </summary>
-        public static void GetTokens(USpan<char> expression, TokenMap map, List<Token> tokens)
+        public static void GetTokens(USpan<char> expression, TokenMap map, List<Token> list)
         {
             uint position = 0;
             uint length = expression.Length;
@@ -45,7 +57,7 @@ namespace ExpressionMachine
                 if (map.Tokens.TryIndexOf(current, out uint tokenIndex))
                 {
                     Token.Type type = (Token.Type)tokenIndex;
-                    tokens.Add(new(type, position, 1));
+                    list.Add(new(type, position, 1));
                     position++;
                 }
                 else
@@ -65,11 +77,15 @@ namespace ExpressionMachine
                         }
                     }
 
-                    tokens.Add(new(Token.Type.Value, start, position - start));
+                    list.Add(new(Token.Type.Value, start, position - start));
                 }
             }
         }
 
+        /// <summary>
+        /// Creates a new <see cref="Node"/> containing the expression represented
+        /// by the given <paramref name="tokens"/>.
+        /// </summary>
         public static Node GetTree(USpan<Token> tokens)
         {
             uint position = 0;
@@ -78,6 +94,7 @@ namespace ExpressionMachine
 
         private static Node.Implementation* TryParseExpression(ref uint position, USpan<Token> tokens)
         {
+            //todo: handle control nodes like if, else if, else, do, goto, and while
             Node.Implementation* result = TryReadFactor(ref position, tokens);
             if (position == tokens.Length)
             {
@@ -91,13 +108,13 @@ namespace ExpressionMachine
                 {
                     position++;
                     Node.Implementation* right = TryReadFactor(ref position, tokens);
-                    result = Node.Implementation.Allocate(NodeType.Addition, result, right);
+                    result = Node.Implementation.Allocate(NodeType.Addition, (nint)result, (nint)right, default);
                 }
                 else if (current.type == Token.Type.Subtract)
                 {
                     position++;
                     Node.Implementation* right = TryReadFactor(ref position, tokens);
-                    result = Node.Implementation.Allocate(NodeType.Subtraction, result, right);
+                    result = Node.Implementation.Allocate(NodeType.Subtraction, (nint)result, (nint)right, default);
                 }
 
                 if (position == tokens.Length)
@@ -126,13 +143,13 @@ namespace ExpressionMachine
                 {
                     position++;
                     Node.Implementation* right = TryReadTerm(ref position, tokens);
-                    factor = Node.Implementation.Allocate(NodeType.Multiplication, factor, right);
+                    factor = Node.Implementation.Allocate(NodeType.Multiplication, (nint)factor, (nint)right, default);
                 }
                 else if (current.type == Token.Type.Divide)
                 {
                     position++;
                     Node.Implementation* right = TryReadTerm(ref position, tokens);
-                    factor = Node.Implementation.Allocate(NodeType.Division, factor, right);
+                    factor = Node.Implementation.Allocate(NodeType.Division, (nint)factor, (nint)right, default);
                 }
 
                 if (position == tokens.Length)
@@ -156,11 +173,11 @@ namespace ExpressionMachine
 
             Token current = tokens[position];
             position++;
-            if (current.type == Token.Type.OpenParenthesis)
+            if (current.type == Token.Type.BeginGroup)
             {
                 Node.Implementation* term = TryParseExpression(ref position, tokens);
                 current = tokens[position];
-                if (current.type != Token.Type.CloseParenthesis)
+                if (current.type != Token.Type.EndGroup)
                 {
                     throw new FormatException("Expected closing parenthesis");
                 }
@@ -175,14 +192,14 @@ namespace ExpressionMachine
                 if (position < tokens.Length)
                 {
                     var next = tokens[position];
-                    if (next.type == Token.Type.OpenParenthesis)
+                    if (next.type == Token.Type.BeginGroup)
                     {
                         position++;
                         Node.Implementation* argument = TryParseExpression(ref position, tokens);
                         if (position < tokens.Length)
                         {
                             current = tokens[position];
-                            if (current.type != Token.Type.CloseParenthesis)
+                            if (current.type != Token.Type.EndGroup)
                             {
                                 throw new FormatException("Expected closing parenthesis");
                             }
@@ -190,11 +207,11 @@ namespace ExpressionMachine
                             position++;
                         }
 
-                        return Node.Implementation.Allocate(start, length, argument);
+                        return Node.Implementation.Allocate(NodeType.Call, (nint)start, (nint)length, (nint)argument);
                     }
                 }
 
-                return Node.Implementation.Allocate(start, length);
+                return Node.Implementation.Allocate(NodeType.Value, (nint)start, (nint)length, default);
             }
             else
             {
