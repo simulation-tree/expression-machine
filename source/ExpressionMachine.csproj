@@ -25,7 +25,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\collections\source\Collections.csproj" />
-		<ProjectReference Include="..\..\unmanaged\source\Unmanaged.csproj" />
+		<ProjectReference Include="..\..\unmanaged\core\Unmanaged.Core.csproj" />
 	</ItemGroup>
 
 </Project>
