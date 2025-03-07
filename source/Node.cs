@@ -17,7 +17,7 @@ namespace ExpressionMachine
         {
             get
             {
-                Allocations.ThrowIfNull(node);
+                MemoryAddress.ThrowIfDefault(node);
 
                 return ref node->type;
             }
@@ -30,7 +30,7 @@ namespace ExpressionMachine
         {
             get
             {
-                Allocations.ThrowIfNull(node);
+                MemoryAddress.ThrowIfDefault(node);
 
                 return ref node->a;
             }
@@ -43,7 +43,7 @@ namespace ExpressionMachine
         {
             get
             {
-                Allocations.ThrowIfNull(node);
+                MemoryAddress.ThrowIfDefault(node);
 
                 return ref node->b;
             }
@@ -56,7 +56,7 @@ namespace ExpressionMachine
         {
             get
             {
-                Allocations.ThrowIfNull(node);
+                MemoryAddress.ThrowIfDefault(node);
 
                 return ref node->c;
             }
@@ -119,7 +119,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void Clear()
         {
-            Allocations.ThrowIfNull(node);
+            MemoryAddress.ThrowIfDefault(node);
 
             node->type = default;
             node->a = default;
@@ -150,7 +150,7 @@ namespace ExpressionMachine
             /// </summary>
             public static void Free(ref Implementation* node)
             {
-                Allocations.ThrowIfNull(node);
+                MemoryAddress.ThrowIfDefault(node);
 
                 NodeType type = node->type;
                 if (type == NodeType.Addition || type == NodeType.Subtraction || type == NodeType.Multiplication || type == NodeType.Division)
@@ -169,7 +169,7 @@ namespace ExpressionMachine
                     }
                 }
 
-                Allocations.Free(ref node);
+                MemoryAddress.Free(ref node);
             }
 
             /// <summary>
@@ -177,7 +177,7 @@ namespace ExpressionMachine
             /// </summary>
             public static float Evaluate(Implementation* node, Machine vm)
             {
-                Allocations.ThrowIfNull(node);
+                MemoryAddress.ThrowIfDefault(node);
 
                 NodeType type = node->type;
                 switch (type)
@@ -223,7 +223,7 @@ namespace ExpressionMachine
             /// </summary>
             public static Implementation* Allocate(NodeType type, nint a, nint b, nint c)
             {
-                ref Implementation node = ref Allocations.Allocate<Implementation>();
+                ref Implementation node = ref MemoryAddress.Allocate<Implementation>();
                 node = new Implementation(type, a, b, c);
                 fixed (Implementation* pointer = &node)
                 {

@@ -22,7 +22,7 @@ namespace ExpressionMachine
         {
             get
             {
-                Allocations.ThrowIfNull(machine);
+                MemoryAddress.ThrowIfDefault(machine);
 
                 return machine->source.AsSpan();
             }
@@ -63,7 +63,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Creates a new machine initialized with the given <paramref name="source"/>.
         /// </summary>
-        public Machine(FixedString source)
+        public Machine(ASCIIText256 source)
         {
             machine = Implementation.Allocate();
             SetSource(source);
@@ -97,7 +97,7 @@ namespace ExpressionMachine
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfFunctionIsMissing(FixedString name)
+        private readonly void ThrowIfFunctionIsMissing(ASCIIText256 name)
         {
             if (!ContainsFunction(name))
             {
@@ -108,7 +108,7 @@ namespace ExpressionMachine
         /// <inheritdoc/>
         public void Dispose()
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             Implementation.Free(ref machine);
         }
@@ -118,7 +118,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void SetSource(USpan<char> newSource)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             USpan<char> currentSource = machine->source.AsSpan();
             if (!newSource.SequenceEqual(currentSource))
@@ -135,7 +135,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly void SetSource(FixedString newSource)
+        public readonly void SetSource(ASCIIText256 newSource)
         {
             USpan<char> nameSpan = stackalloc char[newSource.Length];
             newSource.CopyTo(nameSpan);
@@ -155,7 +155,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void ClearVariables()
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             machine->variableNameHashes.Clear();
             machine->variableValues.Clear();
@@ -166,7 +166,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void ClearFunctions()
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             machine->functionNameHashes.Clear();
             machine->functionValues.Clear();
@@ -177,10 +177,10 @@ namespace ExpressionMachine
         /// </summary>
         public readonly float GetVariable(USpan<char> name)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
             ThrowIfVariableIsMissing(name);
 
-            int hash = new FixedString(name).GetHashCode();
+            int hash = new ASCIIText256(name).GetHashCode();
             uint index = machine->variableNameHashes.IndexOf(hash);
             return machine->variableValues[index];
         }
@@ -188,7 +188,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Retrieves the value of the variable with the given <paramref name="name"/>.
         /// </summary>
-        public readonly float GetVariable(FixedString name)
+        public readonly float GetVariable(ASCIIText256 name)
         {
             USpan<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
@@ -208,16 +208,16 @@ namespace ExpressionMachine
         /// </summary>
         public readonly bool ContainsVariable(USpan<char> name)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
-            int hash = new FixedString(name).GetHashCode();
+            int hash = new ASCIIText256(name).GetHashCode();
             return machine->variableNameHashes.Contains(hash);
         }
 
         /// <summary>
         /// Checks if the machine contains a variable with the given <paramref name="name"/>.
         /// </summary>
-        public readonly bool ContainsVariable(FixedString name)
+        public readonly bool ContainsVariable(ASCIIText256 name)
         {
             USpan<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
@@ -237,18 +237,18 @@ namespace ExpressionMachine
         /// </summary>
         public readonly bool ContainsFunction(USpan<char> name)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
-            int hash = new FixedString(name).GetHashCode();
+            int hash = new ASCIIText256(name).GetHashCode();
             return machine->functionNameHashes.Contains(hash);
         }
 
         /// <summary>
         /// Checks if the machine contains a function with the given <paramref name="name"/>.
         /// </summary>
-        public readonly bool ContainsFunction(FixedString name)
+        public readonly bool ContainsFunction(ASCIIText256 name)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             int hash = name.GetHashCode();
             return machine->functionNameHashes.Contains(hash);
@@ -259,9 +259,9 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void SetVariable(USpan<char> name, float value)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
-            int hash = new FixedString(name).GetHashCode();
+            int hash = new ASCIIText256(name).GetHashCode();
             if (machine->variableNameHashes.TryIndexOf(hash, out uint index))
             {
                 machine->variableValues[index] = value;
@@ -276,7 +276,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Adds or sets <paramref name="value"/> to the variable with the given <paramref name="name"/>.
         /// </summary>
-        public readonly void SetVariable(FixedString name, float value)
+        public readonly void SetVariable(ASCIIText256 name, float value)
         {
             USpan<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
@@ -296,7 +296,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly USpan<char> GetToken(Token token)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             return machine->source.AsSpan().Slice(token.start, token.length);
         }
@@ -306,7 +306,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly USpan<char> GetToken(uint start, uint length)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             return machine->source.AsSpan().Slice(start, length);
         }
@@ -314,9 +314,9 @@ namespace ExpressionMachine
         /// <summary>
         /// Adds or sets the function with the given <paramref name="name"/>.
         /// </summary>
-        public readonly void SetFunction(FixedString name, Function function)
+        public readonly void SetFunction(ASCIIText256 name, Function function)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             int hash = name.GetHashCode();
             if (machine->functionNameHashes.TryIndexOf(hash, out uint index))
@@ -335,10 +335,10 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void SetFunction(USpan<char> name, delegate* unmanaged<float, float> function)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             Function f = new(function);
-            int hash = new FixedString(name).GetHashCode();
+            int hash = new ASCIIText256(name).GetHashCode();
             if (machine->functionNameHashes.TryIndexOf(hash, out uint index))
             {
                 machine->functionValues[index] = f;
@@ -353,7 +353,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Adds or sets the function with the given <paramref name="name"/>.
         /// </summary>
-        public readonly void SetFunction(FixedString name, delegate* unmanaged<float, float> function)
+        public readonly void SetFunction(ASCIIText256 name, delegate* unmanaged<float, float> function)
         {
             USpan<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
@@ -373,10 +373,10 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void SetFunction(USpan<char> name, Func<float, float> function)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             Function f = new(function);
-            int hash = new FixedString(name).GetHashCode();
+            int hash = new ASCIIText256(name).GetHashCode();
             if (machine->functionNameHashes.TryIndexOf(hash, out uint index))
             {
                 machine->functionValues[index] = f;
@@ -391,7 +391,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Adds or sets the function with the given <paramref name="name"/>.
         /// </summary>
-        public readonly void SetFunction(FixedString name, Func<float, float> function)
+        public readonly void SetFunction(ASCIIText256 name, Func<float, float> function)
         {
             USpan<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
@@ -412,10 +412,10 @@ namespace ExpressionMachine
         /// </summary>
         public readonly float InvokeFunction(USpan<char> name, float value)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
             ThrowIfFunctionIsMissing(name);
 
-            int hash = new FixedString(name).GetHashCode();
+            int hash = new ASCIIText256(name).GetHashCode();
             uint index = machine->functionNameHashes.IndexOf(hash);
             Function function = machine->functionValues[index];
             return function.Invoke(value);
@@ -425,9 +425,9 @@ namespace ExpressionMachine
         /// Invokes the function with the given <paramref name="name"/> with <paramref name="value"/>
         /// as the input parameter.
         /// </summary>
-        public readonly float InvokeFunction(FixedString name, float value)
+        public readonly float InvokeFunction(ASCIIText256 name, float value)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
             ThrowIfFunctionIsMissing(name);
 
             int hash = name.GetHashCode();
@@ -442,10 +442,10 @@ namespace ExpressionMachine
         /// </summary>
         public readonly float InvokeFunction(string name, float value)
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
             ThrowIfFunctionIsMissing(name);
 
-            int hash = new FixedString(name).GetHashCode();
+            int hash = new ASCIIText256(name).GetHashCode();
             uint index = machine->functionNameHashes.IndexOf(hash);
             Function function = machine->functionValues[index];
             return function.Invoke(value);
@@ -456,7 +456,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly float Evaluate()
         {
-            Allocations.ThrowIfNull(machine);
+            MemoryAddress.ThrowIfDefault(machine);
 
             USpan<char> source = machine->source.AsSpan();
             if (float.TryParse(source, out float result))
@@ -500,7 +500,7 @@ namespace ExpressionMachine
             /// </summary>
             public static Implementation* Allocate()
             {
-                ref Implementation machine = ref Allocations.Allocate<Implementation>();
+                ref Implementation machine = ref MemoryAddress.Allocate<Implementation>();
                 machine = new(new TokenMap());
                 fixed (Implementation* pointer = &machine)
                 {
@@ -513,7 +513,7 @@ namespace ExpressionMachine
             /// </summary>
             public static void Free(ref Implementation* machine)
             {
-                Allocations.ThrowIfNull(machine);
+                MemoryAddress.ThrowIfDefault(machine);
 
                 for (uint i = 0; i < machine->functionValues.Count; i++)
                 {
@@ -528,7 +528,7 @@ namespace ExpressionMachine
                 machine->variableNameHashes.Dispose();
                 machine->source.Dispose();
                 machine->map.Dispose();
-                Allocations.Free(ref machine);
+                MemoryAddress.Free(ref machine);
             }
         }
     }
