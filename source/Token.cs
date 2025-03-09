@@ -13,17 +13,17 @@
         /// <summary>
         /// Starting position of the token in the expression.
         /// </summary>
-        public readonly uint start;
+        public readonly int start;
 
         /// <summary>
         /// Length of the token.
         /// </summary>
-        public readonly uint length;
+        public readonly int length;
 
         /// <summary>
         /// Creates a new token.
         /// </summary>
-        public Token(Type type, uint start, uint length)
+        public Token(Type type, int start, int length)
         {
             this.type = type;
             this.start = start;

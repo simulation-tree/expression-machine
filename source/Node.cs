@@ -183,7 +183,7 @@ namespace ExpressionMachine
                 switch (type)
                 {
                     case NodeType.Value:
-                        USpan<char> token = vm.GetToken((uint)node->a, (uint)node->b);
+                        ReadOnlySpan<char> token = vm.GetToken((int)node->a, (int)node->b);
                         if (float.TryParse(token, out float value))
                         {
                             return value;
@@ -201,7 +201,7 @@ namespace ExpressionMachine
                     case NodeType.Division:
                         return Evaluate((Implementation*)node->a, vm) / Evaluate((Implementation*)node->b, vm);
                     case NodeType.Call:
-                        token = vm.GetToken((uint)node->a, (uint)node->b);
+                        token = vm.GetToken((int)node->a, (int)node->b);
                         Implementation* argument = (Implementation*)node->c;
                         if (argument is null)
                         {

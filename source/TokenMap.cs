@@ -15,7 +15,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Individual characters that correspond to the <see cref="Token.Type"/>.
         /// </summary>
-        public readonly USpan<char> Tokens
+        public readonly ReadOnlySpan<char> Tokens
         {
             get
             {
@@ -28,7 +28,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Characters to ignore when parsing (whitespace).
         /// </summary>
-        public readonly USpan<char> Ignore
+        public readonly ReadOnlySpan<char> Ignore
         {
             get
             {
@@ -44,7 +44,7 @@ namespace ExpressionMachine
         public readonly bool IsDisposed => tokens.IsDisposed;
 
         /// <inheritdoc/>
-        public readonly ref char this[Token.Type index] => ref tokens[(uint)index];
+        public readonly ref char this[Token.Type index] => ref tokens[(int)index];
 
         /// <summary>
         /// Creates a new token map.
@@ -52,14 +52,14 @@ namespace ExpressionMachine
         public TokenMap()
         {
             Token.Type[] options = Enum.GetValues<Token.Type>();
-            tokens = new((uint)options.Length);
-            tokens[(uint)Token.Type.Value] = default;
-            tokens[(uint)Token.Type.Add] = '+';
-            tokens[(uint)Token.Type.Subtract] = '-';
-            tokens[(uint)Token.Type.Multiply] = '*';
-            tokens[(uint)Token.Type.Divide] = '/';
-            tokens[(uint)Token.Type.BeginGroup] = '(';
-            tokens[(uint)Token.Type.EndGroup] = ')';
+            tokens = new((int)options.Length);
+            tokens[(int)Token.Type.Value] = default;
+            tokens[(int)Token.Type.Add] = '+';
+            tokens[(int)Token.Type.Subtract] = '-';
+            tokens[(int)Token.Type.Multiply] = '*';
+            tokens[(int)Token.Type.Divide] = '/';
+            tokens[(int)Token.Type.BeginGroup] = '(';
+            tokens[(int)Token.Type.EndGroup] = ')';
 
             ignore = new(0);
             ignore.Append(' ');

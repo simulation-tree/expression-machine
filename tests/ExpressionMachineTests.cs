@@ -133,7 +133,7 @@ namespace ExpressionMachine.Tests
                 otherPositions.Add(new Vector2(x, y));
             }
 
-            for (uint i = 0; i < 360; i++)
+            for (int i = 0; i < 360; i++)
             {
                 Assert.That(positions[i], Is.EqualTo(otherPositions[i]));
             }

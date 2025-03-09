@@ -1,7 +1,6 @@
 ﻿using Collections;
 using Collections.Generic;
 using System;
-using Unmanaged;
 
 namespace ExpressionMachine
 {
@@ -13,7 +12,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Retrieves a list of <see cref="Token"/>s from the given <paramref name="expression"/>.
         /// </summary>
-        public static List<Token> GetTokens(USpan<char> expression)
+        public static List<Token> GetTokens(ReadOnlySpan<char> expression)
         {
             List<Token> tokens = new();
             GetTokens(expression, tokens);
@@ -23,7 +22,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Retrieves a list of <see cref="Token"/>s from the given <paramref name="expression"/>.
         /// </summary>
-        public static List<Token> GetTokens(USpan<char> expression, TokenMap map)
+        public static List<Token> GetTokens(ReadOnlySpan<char> expression, TokenMap map)
         {
             List<Token> tokens = new();
             GetTokens(expression, map, tokens);
@@ -33,7 +32,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Fills the given <paramref name="list"/> list with tokens from the given <paramref name="expression"/>.
         /// </summary>
-        public static void GetTokens(USpan<char> expression, List<Token> list)
+        public static void GetTokens(ReadOnlySpan<char> expression, List<Token> list)
         {
             using TokenMap map = new();
             GetTokens(expression, map, list);
@@ -42,10 +41,10 @@ namespace ExpressionMachine
         /// <summary>
         /// Populates the given <paramref name="list"/> with tokens from the given <paramref name="expression"/>.
         /// </summary>
-        public static void GetTokens(USpan<char> expression, TokenMap map, List<Token> list)
+        public static void GetTokens(ReadOnlySpan<char> expression, TokenMap map, List<Token> list)
         {
-            uint position = 0;
-            uint length = expression.Length;
+            int position = 0;
+            int length = expression.Length;
             while (position < length)
             {
                 char current = expression[position];
@@ -55,7 +54,7 @@ namespace ExpressionMachine
                     continue;
                 }
 
-                if (map.Tokens.TryIndexOf(current, out uint tokenIndex))
+                if (map.Tokens.TryIndexOf(current, out int tokenIndex))
                 {
                     Token.Type type = (Token.Type)tokenIndex;
                     list.Add(new(type, position, 1));
@@ -63,7 +62,7 @@ namespace ExpressionMachine
                 }
                 else
                 {
-                    uint start = position;
+                    int start = position;
                     position++;
                     while (position < length)
                     {
@@ -87,13 +86,13 @@ namespace ExpressionMachine
         /// Creates a new <see cref="Node"/> containing the expression represented
         /// by the given <paramref name="tokens"/>.
         /// </summary>
-        public static Node GetTree(USpan<Token> tokens)
+        public static Node GetTree(ReadOnlySpan<Token> tokens)
         {
-            uint position = 0;
+            int position = 0;
             return new(TryParseExpression(ref position, tokens));
         }
 
-        private static Node.Implementation* TryParseExpression(ref uint position, USpan<Token> tokens)
+        private static Node.Implementation* TryParseExpression(ref int position, ReadOnlySpan<Token> tokens)
         {
             //todo: handle control nodes like if, else if, else, do, goto, and while
             Node.Implementation* result = TryReadFactor(ref position, tokens);
@@ -129,7 +128,7 @@ namespace ExpressionMachine
             return result;
         }
 
-        private static Node.Implementation* TryReadFactor(ref uint position, USpan<Token> tokens)
+        private static Node.Implementation* TryReadFactor(ref int position, ReadOnlySpan<Token> tokens)
         {
             Node.Implementation* factor = TryReadTerm(ref position, tokens);
             if (position == tokens.Length)
@@ -164,7 +163,7 @@ namespace ExpressionMachine
             return factor;
         }
 
-        private static Node.Implementation* TryReadTerm(ref uint position, USpan<Token> tokens)
+        private static Node.Implementation* TryReadTerm(ref int position, ReadOnlySpan<Token> tokens)
         {
             if (position == tokens.Length)
             {
@@ -188,11 +187,11 @@ namespace ExpressionMachine
             }
             else if (current.type == Token.Type.Value)
             {
-                uint start = current.start;
-                uint length = current.length;
+                int start = current.start;
+                int length = current.length;
                 if (position < tokens.Length)
                 {
-                    var next = tokens[position];
+                    Token next = tokens[position];
                     if (next.type == Token.Type.BeginGroup)
                     {
                         position++;
@@ -208,11 +207,11 @@ namespace ExpressionMachine
                             position++;
                         }
 
-                        return Node.Implementation.Allocate(NodeType.Call, (nint)start, (nint)length, (nint)argument);
+                        return Node.Implementation.Allocate(NodeType.Call, start, length, (nint)argument);
                     }
                 }
 
-                return Node.Implementation.Allocate(NodeType.Value, (nint)start, (nint)length, default);
+                return Node.Implementation.Allocate(NodeType.Value, start, length, default);
             }
             else
             {
