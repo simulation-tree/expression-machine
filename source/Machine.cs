@@ -137,7 +137,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void SetSource(ASCIIText256 newSource)
         {
-            System.Span<char> nameSpan = stackalloc char[newSource.Length];
+            Span<char> nameSpan = stackalloc char[newSource.Length];
             newSource.CopyTo(nameSpan);
             SetSource(nameSpan);
         }
@@ -190,7 +190,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly float GetVariable(ASCIIText256 name)
         {
-            System.Span<char> nameSpan = stackalloc char[name.Length];
+            Span<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
             return GetVariable(nameSpan);
         }
@@ -219,7 +219,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly bool ContainsVariable(ASCIIText256 name)
         {
-            System.Span<char> nameSpan = stackalloc char[name.Length];
+            Span<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
             return ContainsVariable(nameSpan);
         }
@@ -278,7 +278,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void SetVariable(ASCIIText256 name, float value)
         {
-            System.Span<char> nameSpan = stackalloc char[name.Length];
+            Span<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
             SetVariable(nameSpan, value);
         }
@@ -355,7 +355,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void SetFunction(ASCIIText256 name, delegate* unmanaged<float, float> function)
         {
-            System.Span<char> nameSpan = stackalloc char[name.Length];
+            Span<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
             SetFunction(nameSpan, function);
         }
@@ -393,7 +393,7 @@ namespace ExpressionMachine
         /// </summary>
         public readonly void SetFunction(ASCIIText256 name, Func<float, float> function)
         {
-            System.Span<char> nameSpan = stackalloc char[name.Length];
+            Span<char> nameSpan = stackalloc char[name.Length];
             name.CopyTo(nameSpan);
             SetFunction(nameSpan, function);
         }
