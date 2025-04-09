@@ -1,5 +1,4 @@
-﻿using Collections;
-using Collections.Generic;
+﻿using Collections.Generic;
 using System;
 
 namespace ExpressionMachine
@@ -86,104 +85,159 @@ namespace ExpressionMachine
         /// Creates a new <see cref="Node"/> containing the expression represented
         /// by the given <paramref name="tokens"/>.
         /// </summary>
-        public static Node GetTree(ReadOnlySpan<Token> tokens)
+        public static bool TryGetTree(ReadOnlySpan<Token> tokens, out Node node, out CompilationError error)
         {
             int position = 0;
-            return TryParseExpression(ref position, tokens);
+            return TryParseExpression(ref position, tokens, out node, out error);
         }
 
-        private static Node TryParseExpression(ref int position, ReadOnlySpan<Token> tokens)
+        private static bool TryParseExpression(ref int position, ReadOnlySpan<Token> tokens, out Node node, out CompilationError error)
         {
             //todo: handle control nodes like if, else if, else, do, goto, and while
-            Node result = TryReadFactor(ref position, tokens);
-            if (position == tokens.Length)
+            if (TryReadFactor(ref position, tokens, out node, out error))
             {
-                return result;
-            }
-
-            Token current = tokens[position];
-            while (result != default && position < tokens.Length && IsTerm(current.type))
-            {
-                if (current.type == Token.Type.Add)
-                {
-                    position++;
-                    Node right = TryReadFactor(ref position, tokens);
-                    result = new(NodeType.Addition, result.Address, right.Address, default);
-                }
-                else if (current.type == Token.Type.Subtract)
-                {
-                    position++;
-                    Node right = TryReadFactor(ref position, tokens);
-                    result = new(NodeType.Subtraction, result.Address, right.Address, default);
-                }
-
                 if (position == tokens.Length)
                 {
-                    break;
+                    return true;
                 }
 
-                current = tokens[position];
-            }
+                Token current = tokens[position];
+                while (node != default && position < tokens.Length && IsTerm(current.type))
+                {
+                    if (current.type == Token.Type.Add)
+                    {
+                        position++;
+                        if (TryReadFactor(ref position, tokens, out Node right, out error))
+                        {
+                            node = new(NodeType.Addition, node.Address, right.Address, default);
+                        }
+                        else
+                        {
+                            node = default;
+                            return false;
+                        }
+                    }
+                    else if (current.type == Token.Type.Subtract)
+                    {
+                        position++;
+                        if (TryReadFactor(ref position, tokens, out Node right, out error))
+                        {
+                            node = new(NodeType.Subtraction, node.Address, right.Address, default);
+                        }
+                        else
+                        {
+                            node = default;
+                            return false;
+                        }
+                    }
 
-            return result;
+                    if (position == tokens.Length)
+                    {
+                        break;
+                    }
+
+                    current = tokens[position];
+                }
+
+                return true;
+            }
+            else
+            {
+                node = default;
+                return false;
+            }
         }
 
-        private static Node TryReadFactor(ref int position, ReadOnlySpan<Token> tokens)
+        private static bool TryReadFactor(ref int position, ReadOnlySpan<Token> tokens, out Node node, out CompilationError error)
         {
-            Node factor = TryReadTerm(ref position, tokens);
-            if (position == tokens.Length)
+            if (TryReadTerm(ref position, tokens, out node, out error))
             {
-                return factor;
-            }
-
-            Token current = tokens[position];
-            while (factor != default && position < tokens.Length && IsFactor(current.type))
-            {
-                if (current.type == Token.Type.Multiply)
-                {
-                    position++;
-                    Node right = TryReadTerm(ref position, tokens);
-                    factor = new(NodeType.Multiplication, factor.Address, right.Address, default);
-                }
-                else if (current.type == Token.Type.Divide)
-                {
-                    position++;
-                    Node right = TryReadTerm(ref position, tokens);
-                    factor = new(NodeType.Division, factor.Address, right.Address, default);
-                }
-
                 if (position == tokens.Length)
                 {
-                    break;
+                    return true;
                 }
 
-                current = tokens[position];
-            }
+                Token current = tokens[position];
+                while (node != default && position < tokens.Length && IsFactor(current.type))
+                {
+                    if (current.type == Token.Type.Multiply)
+                    {
+                        position++;
+                        if (TryReadTerm(ref position, tokens, out Node right, out error))
+                        {
+                            node = new(NodeType.Multiplication, node.Address, right.Address, default);
+                        }
+                        else
+                        {
+                            node = default;
+                            return false;
+                        }
+                    }
+                    else if (current.type == Token.Type.Divide)
+                    {
+                        position++;
+                        if (TryReadTerm(ref position, tokens, out Node right, out error))
+                        {
+                            node = new(NodeType.Division, node.Address, right.Address, default);
+                        }
+                        else
+                        {
+                            node = default;
+                            return false;
+                        }
+                    }
 
-            return factor;
+                    if (position == tokens.Length)
+                    {
+                        break;
+                    }
+
+                    current = tokens[position];
+                }
+
+                return true;
+            }
+            else
+            {
+                node = default;
+                return false;
+            }
         }
 
-        private static Node TryReadTerm(ref int position, ReadOnlySpan<Token> tokens)
+        private static bool TryReadTerm(ref int position, ReadOnlySpan<Token> tokens, out Node node, out CompilationError error)
         {
             if (position == tokens.Length)
             {
                 Token lastToken = tokens[position - 1];
-                throw new FormatException($"Expected a token after {lastToken}");
+                node = default;
+                error = new(CompilationError.Type.ExpectedAdditionalToken, $"Expected a token after `{lastToken.type}`");
+                return false;
             }
 
             Token current = tokens[position];
             position++;
             if (current.type == Token.Type.BeginGroup)
             {
-                Node term = TryParseExpression(ref position, tokens);
-                current = tokens[position];
-                if (current.type != Token.Type.EndGroup)
+                if (TryParseExpression(ref position, tokens, out Node term, out error))
                 {
-                    throw new FormatException("Expected closing parenthesis");
-                }
+                    current = tokens[position];
+                    if (current.type != Token.Type.EndGroup)
+                    {
+                        term.Dispose();
+                        node = default;
+                        error = new(CompilationError.Type.ExpectedGroupCloseToken, $"Expected a `` to close the start of a group");
+                        return false;
+                    }
 
-                position++;
-                return term;
+                    position++;
+                    node = term;
+                    return true;
+                }
+                else
+                {
+                    node = default;
+                    return false;
+                }
             }
             else if (current.type == Token.Type.Value)
             {
@@ -195,27 +249,43 @@ namespace ExpressionMachine
                     if (next.type == Token.Type.BeginGroup)
                     {
                         position++;
-                        Node argument = TryParseExpression(ref position, tokens);
-                        if (position < tokens.Length)
+                        if (TryParseExpression(ref position, tokens, out Node argument, out error))
                         {
-                            current = tokens[position];
-                            if (current.type != Token.Type.EndGroup)
+                            if (position < tokens.Length)
                             {
-                                throw new FormatException("Expected closing parenthesis");
+                                current = tokens[position];
+                                if (current.type != Token.Type.EndGroup)
+                                {
+                                    argument.Dispose();
+                                    node = default;
+                                    error = new(CompilationError.Type.ExpectedGroupCloseToken, $"Expected a `` to close the start of a group");
+                                    return false;
+                                }
+
+                                position++;
                             }
 
-                            position++;
+                            node = new(NodeType.Call, start, length, argument.Address);
+                            error = default;
+                            return true;
                         }
-
-                        return new(NodeType.Call, start, length, argument.Address);
+                        else
+                        {
+                            node = default;
+                            return false;
+                        }
                     }
                 }
 
-                return new(NodeType.Value, start, length, default);
+                node = new(NodeType.Value, start, length, default);
+                error = default;
+                return true;
             }
             else
             {
-                return default;
+                node = default;
+                error = default;
+                return true;
             }
         }
 

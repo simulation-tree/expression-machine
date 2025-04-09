@@ -149,7 +149,10 @@ namespace ExpressionMachine
 
                 //todo: efficiency: instead of disposing and creating a new instance, reuse it
                 machine->tree.Dispose();
-                machine->tree = Parsing.GetTree(machine->tokens.AsSpan());
+                if (!Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out CompilationError error))
+                {
+                    throw error.GetException();
+                }
             }
         }
 
@@ -534,7 +537,10 @@ namespace ExpressionMachine
                 functionNameHashes = new(4);
                 functionValues = new(4);
                 tokens = Parsing.GetTokens(source, map);
-                tree = Parsing.GetTree(tokens.AsSpan());
+                if (!Parsing.TryGetTree(tokens.AsSpan(), out tree, out CompilationError error))
+                {
+                    throw error.GetException();
+                }
             }
 
             /// <summary>
