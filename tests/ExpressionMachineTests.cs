@@ -75,6 +75,8 @@ namespace ExpressionMachine.Tests
             vertical.SetVariable("height", 600);
             vertical.SetFunction("multiply", Multiply);
 
+            Assert.That(horizontal.Source.ToString(), Is.EqualTo("width * 0.5"));
+            Assert.That(vertical.Source.ToString(), Is.EqualTo("multiply(height) + 50"));
             Assert.That(horizontal.Evaluate(), Is.EqualTo(400));
             Assert.That(vertical.Evaluate(), Is.EqualTo(350));
 
@@ -149,6 +151,23 @@ namespace ExpressionMachine.Tests
             Assert.That(a.IsDisposed, Is.False);
             a.Dispose();
             Assert.That(a.IsDisposed, Is.True);
+        }
+
+        [Test]
+        public void CompilationError()
+        {
+            //float? result = null;
+            //using Machine vm = new();
+            //try
+            //{
+            //    vm.SetSource("5 +");
+            //}
+            //catch (Exception ex)
+            //{ 
+            //    Assert.Fail(ex.Message);
+            //}
+            //
+            //result = vm.Evaluate();
         }
     }
 }

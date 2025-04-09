@@ -98,6 +98,12 @@ namespace ExpressionMachine
             node = Implementation.Allocate(type, a, b, c);
         }
 
+        /// <inheritdoc/>
+        public readonly override string ToString()
+        {
+            return Type.ToString();
+        }
+
         /// <summary>
         /// Disposes of the node.
         /// </summary>
@@ -125,6 +131,14 @@ namespace ExpressionMachine
             node->a = default;
             node->b = default;
             node->c = default;
+        }
+
+        /// <summary>
+        /// Creates an empty node.
+        /// </summary>
+        public static Node Create()
+        {
+            return new(Implementation.Allocate(default, default, default, default));
         }
 
         /// <summary>

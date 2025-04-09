@@ -52,7 +52,7 @@ namespace ExpressionMachine
         public TokenMap()
         {
             Token.Type[] options = Enum.GetValues<Token.Type>();
-            tokens = new((int)options.Length);
+            tokens = new(options.Length);
             tokens[(int)Token.Type.Value] = default;
             tokens[(int)Token.Type.Add] = '+';
             tokens[(int)Token.Type.Subtract] = '-';
@@ -64,6 +64,12 @@ namespace ExpressionMachine
             ignore = new(0);
             ignore.Append(' ');
             ignore.Append('\t');
+        }
+
+        private TokenMap(Text tokens, Text ignore)
+        {
+            this.tokens = tokens;
+            this.ignore = ignore;
         }
 
         /// <summary>
@@ -84,6 +90,27 @@ namespace ExpressionMachine
             {
                 throw new ObjectDisposedException(nameof(TokenMap));
             }
+        }
+
+        /// <summary>
+        /// Creates a default token map.
+        /// </summary>
+        public static TokenMap Create()
+        {
+            Token.Type[] options = Enum.GetValues<Token.Type>();
+            Text tokens = new(options.Length);
+            tokens[(int)Token.Type.Value] = default;
+            tokens[(int)Token.Type.Add] = '+';
+            tokens[(int)Token.Type.Subtract] = '-';
+            tokens[(int)Token.Type.Multiply] = '*';
+            tokens[(int)Token.Type.Divide] = '/';
+            tokens[(int)Token.Type.BeginGroup] = '(';
+            tokens[(int)Token.Type.EndGroup] = ')';
+
+            Text ignore = new(0);
+            ignore.Append(' ');
+            ignore.Append('\t');
+            return new(tokens, ignore);
         }
     }
 }
