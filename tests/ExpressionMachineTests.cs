@@ -154,20 +154,12 @@ namespace ExpressionMachine.Tests
         }
 
         [Test]
-        public void CompilationError()
+        public void UnsuccessfulCompilation()
         {
-            //float? result = null;
-            //using Machine vm = new();
-            //try
-            //{
-            //    vm.SetSource("5 +");
-            //}
-            //catch (Exception ex)
-            //{ 
-            //    Assert.Fail(ex.Message);
-            //}
-            //
-            //result = vm.Evaluate();
+            using Machine vm = new();
+            bool success = vm.TrySetSource("5 +", out CompilationError error);
+            Assert.That(success, Is.False);
+            Assert.That(error.type, Is.EqualTo(CompilationError.Type.ExpectedAdditionalToken));
         }
     }
 }

@@ -129,7 +129,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly void SetSource(ReadOnlySpan<char> newSource)
+        public readonly bool TrySetSource(ReadOnlySpan<char> newSource, out CompilationError error)
         {
             MemoryAddress.ThrowIfDefault(machine);
 
@@ -149,11 +149,67 @@ namespace ExpressionMachine
 
                 //todo: efficiency: instead of disposing and creating a new instance, reuse it
                 machine->tree.Dispose();
+                if (Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out error))
+                {
+                    return true;
+                }
+                else
+                {
+                    machine->tree = Node.Create();
+                    return false;
+                }
+            }
+
+            error = default;
+            return true;
+        }
+
+        /// <summary>
+        /// Assigns <paramref name="newSource"/> to the machine.
+        /// </summary>
+        public readonly void SetSource(ReadOnlySpan<char> newSource)
+        {
+            MemoryAddress.ThrowIfDefault(machine);
+
+            ReadOnlySpan<char> currentSource = machine->source.GetSpan<char>(machine->sourceLength);
+            if (!newSource.SequenceEqual(currentSource))
+            {
+                machine->sourceLength = newSource.Length;
+                if (machine->sourceCapacity < machine->sourceLength)
+                {
+                    machine->sourceCapacity = machine->sourceLength.GetNextPowerOf2();
+                    MemoryAddress.Resize(ref machine->source, machine->sourceCapacity * sizeof(char));
+                }
+
+                machine->source.CopyFrom(newSource);
+                machine->tokens.Clear();
+                Parsing.GetTokens(newSource, machine->map, machine->tokens);
+
+                machine->tree.Dispose();
                 if (!Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out CompilationError error))
                 {
+                    machine->tree = Node.Create();
                     throw error.GetException();
                 }
             }
+        }
+
+        /// <summary>
+        /// Assigns <paramref name="newSource"/> to the machine.
+        /// </summary>
+        public readonly bool TrySetSource(ASCIIText256 newSource, out CompilationError error)
+        {
+            Span<char> nameSpan = stackalloc char[newSource.Length];
+            newSource.CopyTo(nameSpan);
+            return TrySetSource(nameSpan, out error);
+        }
+
+        /// <summary>
+        /// Assigns <paramref name="newSource"/> to the machine.
+        /// </summary>
+        public readonly bool TrySetSource(string newSource, out CompilationError error)
+        {
+            return TrySetSource(newSource.AsSpan(), out error);
         }
 
         /// <summary>

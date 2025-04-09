@@ -47,6 +47,11 @@ namespace ExpressionMachine
         public enum Type
         {
             /// <summary>
+            /// Not an error.
+            /// </summary>
+            None,
+
+            /// <summary>
             /// An additional token was expected but is missing.
             /// </summary>
             ExpectedAdditionalToken,

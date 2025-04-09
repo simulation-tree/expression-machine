@@ -44,16 +44,18 @@ namespace ExpressionMachine
         {
             int position = 0;
             int length = expression.Length;
+            ReadOnlySpan<char> ignore = map.Ignore;
+            ReadOnlySpan<char> tokens = map.Tokens;
             while (position < length)
             {
                 char current = expression[position];
-                if (map.Ignore.Contains(current))
+                if (ignore.Contains(current))
                 {
                     position++;
                     continue;
                 }
 
-                if (map.Tokens.TryIndexOf(current, out int tokenIndex))
+                if (tokens.TryIndexOf(current, out int tokenIndex))
                 {
                     Token.Type type = (Token.Type)tokenIndex;
                     list.Add(new(type, position, 1));
@@ -66,7 +68,7 @@ namespace ExpressionMachine
                     while (position < length)
                     {
                         char c = expression[position];
-                        if (!map.Tokens.Contains(c) && !map.Ignore.Contains(c))
+                        if (!tokens.Contains(c) && !ignore.Contains(c))
                         {
                             position++;
                         }
@@ -113,6 +115,7 @@ namespace ExpressionMachine
                         }
                         else
                         {
+                            node.Dispose();
                             node = default;
                             return false;
                         }
@@ -126,6 +129,7 @@ namespace ExpressionMachine
                         }
                         else
                         {
+                            node.Dispose();
                             node = default;
                             return false;
                         }
@@ -169,6 +173,7 @@ namespace ExpressionMachine
                         }
                         else
                         {
+                            node.Dispose();
                             node = default;
                             return false;
                         }
@@ -182,6 +187,7 @@ namespace ExpressionMachine
                         }
                         else
                         {
+                            node.Dispose();
                             node = default;
                             return false;
                         }
@@ -218,19 +224,18 @@ namespace ExpressionMachine
             position++;
             if (current.type == Token.Type.BeginGroup)
             {
-                if (TryParseExpression(ref position, tokens, out Node term, out error))
+                if (TryParseExpression(ref position, tokens, out node, out error))
                 {
                     current = tokens[position];
                     if (current.type != Token.Type.EndGroup)
                     {
-                        term.Dispose();
+                        node.Dispose();
                         node = default;
                         error = new(CompilationError.Type.ExpectedGroupCloseToken, $"Expected a `` to close the start of a group");
                         return false;
                     }
 
                     position++;
-                    node = term;
                     return true;
                 }
                 else
