@@ -124,7 +124,18 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            Implementation.Free(ref machine);
+            foreach (Function function in machine->functionValues.Values)
+            {
+                function.Dispose();
+            }
+
+            machine->tree.Dispose();
+            machine->tokens.Dispose();
+            machine->functionValues.Dispose();
+            machine->variableValues.Dispose();
+            machine->source.Dispose();
+            machine->map.Dispose();
+            MemoryAddress.Free(ref machine);
         }
 
         /// <summary>
@@ -240,7 +251,6 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            machine->variableNameHashes.Clear();
             machine->variableValues.Clear();
         }
 
@@ -251,7 +261,6 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            machine->functionNameHashes.Clear();
             machine->functionValues.Clear();
         }
 
@@ -264,8 +273,7 @@ namespace ExpressionMachine
             ThrowIfVariableIsMissing(name);
 
             long hash = name.GetLongHashCode();
-            int index = machine->variableNameHashes.IndexOf(hash);
-            return machine->variableValues[index];
+            return machine->variableValues[hash];
         }
 
         /// <summary>
@@ -294,7 +302,7 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
 
             long hash = name.GetLongHashCode();
-            return machine->variableNameHashes.Contains(hash);
+            return machine->variableValues.ContainsKey(hash);
         }
 
         /// <summary>
@@ -323,7 +331,7 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
 
             long hash = name.GetLongHashCode();
-            return machine->functionNameHashes.Contains(hash);
+            return machine->functionValues.ContainsKey(hash);
         }
 
         /// <summary>
@@ -334,7 +342,7 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
 
             long hash = name.GetLongHashCode();
-            return machine->functionNameHashes.Contains(hash);
+            return machine->functionValues.ContainsKey(hash);
         }
 
         /// <summary>
@@ -345,15 +353,13 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
 
             long hash = name.GetLongHashCode();
-            if (machine->variableNameHashes.TryIndexOf(hash, out int index))
+            ref float existing = ref machine->variableValues.TryGetValue(hash, out bool contains);
+            if (!contains)
             {
-                machine->variableValues[index] = value;
+                existing = ref machine->variableValues.Add(hash);
             }
-            else
-            {
-                machine->variableNameHashes.Add(hash);
-                machine->variableValues.Add(value);
-            }
+
+            existing = value;
         }
 
         /// <summary>
@@ -404,15 +410,13 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
 
             long hash = name.GetLongHashCode();
-            if (machine->functionNameHashes.TryIndexOf(hash, out int index))
+            ref Function existing = ref machine->functionValues.TryGetValue(hash, out bool contains);
+            if (!contains)
             {
-                machine->functionValues[index] = function;
+                existing = ref machine->functionValues.Add(hash);
             }
-            else
-            {
-                machine->functionNameHashes.Add(hash);
-                machine->functionValues.Add(function);
-            }
+
+            existing = function;
         }
 
         /// <summary>
@@ -422,17 +426,14 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            Function f = new(function);
             long hash = name.GetLongHashCode();
-            if (machine->functionNameHashes.TryIndexOf(hash, out int index))
+            ref Function existing = ref machine->functionValues.TryGetValue(hash, out bool contains);
+            if (!contains)
             {
-                machine->functionValues[index] = f;
+                existing = ref machine->functionValues.Add(hash);
             }
-            else
-            {
-                machine->functionNameHashes.Add(hash);
-                machine->functionValues.Add(f);
-            }
+
+            existing = new(function);
         }
 
         /// <summary>
@@ -460,17 +461,14 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            Function f = new(function);
             long hash = name.GetLongHashCode();
-            if (machine->functionNameHashes.TryIndexOf(hash, out int index))
+            ref Function existing = ref machine->functionValues.TryGetValue(hash, out bool contains);
+            if (!contains)
             {
-                machine->functionValues[index] = f;
+                existing = ref machine->functionValues.Add(hash);
             }
-            else
-            {
-                machine->functionNameHashes.Add(hash);
-                machine->functionValues.Add(f);
-            }
+
+            existing = new(function);
         }
 
         /// <summary>
@@ -501,8 +499,7 @@ namespace ExpressionMachine
             ThrowIfFunctionIsMissing(name);
 
             long hash = name.GetLongHashCode();
-            int index = machine->functionNameHashes.IndexOf(hash);
-            Function function = machine->functionValues[index];
+            Function function = machine->functionValues[hash];
             return function.Invoke(value);
         }
 
@@ -516,8 +513,7 @@ namespace ExpressionMachine
             ThrowIfFunctionIsMissing(name);
 
             long hash = name.GetLongHashCode();
-            int index = machine->functionNameHashes.IndexOf(hash);
-            Function function = machine->functionValues[index];
+            Function function = machine->functionValues[hash];
             return function.Invoke(value);
         }
 
@@ -531,8 +527,7 @@ namespace ExpressionMachine
             ThrowIfFunctionIsMissing(name);
 
             long hash = name.GetLongHashCode();
-            int index = machine->functionNameHashes.IndexOf(hash);
-            Function function = machine->functionValues[index];
+            Function function = machine->functionValues[hash];
             return function.Invoke(value);
         }
 
@@ -564,10 +559,8 @@ namespace ExpressionMachine
             public int sourceLength;
             public int sourceCapacity;
             public readonly TokenMap map;
-            public readonly List<long> variableNameHashes;
-            public readonly List<float> variableValues;
-            public readonly List<long> functionNameHashes;
-            public readonly List<Function> functionValues;
+            public readonly Dictionary<long, float> variableValues;
+            public readonly Dictionary<long, Function> functionValues;
             public readonly List<Token> tokens;
 
             public Implementation(TokenMap map)
@@ -576,9 +569,7 @@ namespace ExpressionMachine
                 sourceCapacity = 4;
                 sourceLength = 0;
                 source = MemoryAddress.Allocate(sizeof(char) * sourceCapacity);
-                variableNameHashes = new(4);
                 variableValues = new(4);
-                functionNameHashes = new(4);
                 functionValues = new(4);
                 tokens = new(32);
                 tree = Node.Create();
@@ -591,9 +582,7 @@ namespace ExpressionMachine
                 sourceCapacity = Math.Max(4, sourceLength.GetNextPowerOf2());
                 this.source = MemoryAddress.Allocate(sizeof(char) * sourceCapacity);
                 this.source.CopyFrom(source);
-                variableNameHashes = new(4);
                 variableValues = new(4);
-                functionNameHashes = new(4);
                 functionValues = new(4);
                 tokens = Parsing.GetTokens(source, map);
                 if (!Parsing.TryGetTree(tokens.AsSpan(), out tree, out Exception? exception))
@@ -601,29 +590,6 @@ namespace ExpressionMachine
                     tree = Node.Create();
                     throw exception;
                 }
-            }
-
-            /// <summary>
-            /// Frees the given <paramref name="machine"/>.
-            /// </summary>
-            public static void Free(ref Implementation* machine)
-            {
-                MemoryAddress.ThrowIfDefault(machine);
-
-                for (int i = 0; i < machine->functionValues.Count; i++)
-                {
-                    machine->functionValues[i].Dispose();
-                }
-
-                machine->tree.Dispose();
-                machine->tokens.Dispose();
-                machine->functionValues.Dispose();
-                machine->functionNameHashes.Dispose();
-                machine->variableValues.Dispose();
-                machine->variableNameHashes.Dispose();
-                machine->source.Dispose();
-                machine->map.Dispose();
-                MemoryAddress.Free(ref machine);
             }
         }
     }
