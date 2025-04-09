@@ -1,5 +1,4 @@
-﻿using Collections.Generic;
-using System;
+﻿using System;
 using System.Numerics;
 using Unmanaged.Tests;
 
@@ -114,25 +113,25 @@ namespace ExpressionMachine.Tests
             vm.SetFunction("cos", MathF.Cos);
             vm.SetFunction("sin", MathF.Sin);
 
-            using List<Vector2> positions = new();
-            for (uint i = 0; i < 360; i++)
+            Span<Vector2> positions = stackalloc Vector2[360];
+            int length = positions.Length;
+            for (int i = 0; i < positions.Length; i++)
             {
-                float t = i * MathF.PI / 180;
+                float t = i * MathF.PI / (length * 0.5f);
                 vm.SetVariable("t", t);
                 vm.SetSource("cos(t) * radius");
                 float x = vm.Evaluate();
                 vm.SetSource("sin(t) * radius");
                 float y = vm.Evaluate();
-                positions.Add(new Vector2(x, y));
+                positions[i] = new Vector2(x, y);
             }
 
-            using List<Vector2> otherPositions = new();
-            for (uint i = 0; i < 360; i++)
+            Span<Vector2> otherPositions = stackalloc Vector2[positions.Length];
+            for (int i = 0; i < positions.Length; i++)
             {
-                float t = i * MathF.PI / 180;
-                float x = MathF.Cos(t) * radius;
-                float y = MathF.Sin(t) * radius;
-                otherPositions.Add(new Vector2(x, y));
+                float t = i * MathF.PI / (length * 0.5f);
+                (float y, float x) = MathF.SinCos(t);
+                otherPositions[i] = new Vector2(x, y) * radius;
             }
 
             for (int i = 0; i < 360; i++)
@@ -160,6 +159,15 @@ namespace ExpressionMachine.Tests
             CompilationResult result = vm.SetSource("5 +");
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.exception?.GetType(), Is.EqualTo(typeof(MissingTokenException)));
+
+            if (vm.TrySetSource("5 + ", out Exception? exception))
+            {
+                Assert.Fail();
+            }
+            else
+            {
+                Assert.That(exception.GetType(), Is.EqualTo(typeof(MissingTokenException)));
+            }
         }
     }
 }
