@@ -11,26 +11,26 @@ namespace ExpressionMachine
         /// <summary>
         /// Type of compilation error.
         /// </summary>
-        public readonly Type type;
+        public readonly CompilationResult.Type type;
 
         /// <summary>
         /// Additional error message.
         /// </summary>
-        public readonly ASCIIText256 message;
+        public readonly ASCIIText256 errorMessage;
 
         /// <summary>
         /// Creates an instance.
         /// </summary>
-        public CompilationError(Type type, ReadOnlySpan<char> message)
+        public CompilationError(CompilationResult.Type type, ReadOnlySpan<char> errorMessage)
         {
             this.type = type;
-            this.message = message;
+            this.errorMessage = errorMessage;
         }
 
         /// <inheritdoc/>
         public readonly override string ToString()
         {
-            return $"{type}: {message}";
+            return $"{type}: {errorMessage}";
         }
 
         /// <summary>
@@ -39,27 +39,6 @@ namespace ExpressionMachine
         public readonly Exception GetException()
         {
             return new(ToString());
-        }
-
-        /// <summary>
-        /// Defines all built-in compilation error types.
-        /// </summary>
-        public enum Type
-        {
-            /// <summary>
-            /// Not an error.
-            /// </summary>
-            None,
-
-            /// <summary>
-            /// An additional token was expected but is missing.
-            /// </summary>
-            ExpectedAdditionalToken,
-
-            /// <summary>
-            /// A group closing token was epxected but is missing.
-            /// </summary>
-            ExpectedGroupCloseToken
         }
     }
 }

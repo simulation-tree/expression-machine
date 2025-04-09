@@ -157,9 +157,9 @@ namespace ExpressionMachine.Tests
         public void UnsuccessfulCompilation()
         {
             using Machine vm = new();
-            bool success = vm.TrySetSource("5 +", out CompilationError error);
-            Assert.That(success, Is.False);
-            Assert.That(error.type, Is.EqualTo(CompilationError.Type.ExpectedAdditionalToken));
+            CompilationResult result = vm.SetSource("5 +");
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.type, Is.EqualTo(CompilationResult.Type.ExpectedAdditionalToken));
         }
     }
 }

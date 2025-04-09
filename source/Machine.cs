@@ -167,7 +167,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly void SetSource(ReadOnlySpan<char> newSource)
+        public readonly CompilationResult SetSource(ReadOnlySpan<char> newSource)
         {
             MemoryAddress.ThrowIfDefault(machine);
 
@@ -189,9 +189,11 @@ namespace ExpressionMachine
                 if (!Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out CompilationError error))
                 {
                     machine->tree = Node.Create();
-                    throw error.GetException();
+                    return new(error);
                 }
             }
+
+            return CompilationResult.Success;
         }
 
         /// <summary>
@@ -215,19 +217,19 @@ namespace ExpressionMachine
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly void SetSource(ASCIIText256 newSource)
+        public readonly CompilationResult SetSource(ASCIIText256 newSource)
         {
             Span<char> nameSpan = stackalloc char[newSource.Length];
             newSource.CopyTo(nameSpan);
-            SetSource(nameSpan);
+            return SetSource(nameSpan);
         }
 
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly void SetSource(string newSource)
+        public readonly CompilationResult SetSource(string newSource)
         {
-            SetSource(newSource.AsSpan());
+            return SetSource(newSource.AsSpan());
         }
 
         /// <summary>
@@ -595,6 +597,7 @@ namespace ExpressionMachine
                 tokens = Parsing.GetTokens(source, map);
                 if (!Parsing.TryGetTree(tokens.AsSpan(), out tree, out CompilationError error))
                 {
+                    tree = Node.Create();
                     throw error.GetException();
                 }
             }

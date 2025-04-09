@@ -216,7 +216,7 @@ namespace ExpressionMachine
             {
                 Token lastToken = tokens[position - 1];
                 node = default;
-                error = new(CompilationError.Type.ExpectedAdditionalToken, $"Expected a token after `{lastToken.type}`");
+                error = new(CompilationResult.Type.ExpectedAdditionalToken, $"Expected a token after `{lastToken.type}`");
                 return false;
             }
 
@@ -231,7 +231,7 @@ namespace ExpressionMachine
                     {
                         node.Dispose();
                         node = default;
-                        error = new(CompilationError.Type.ExpectedGroupCloseToken, $"Expected a `` to close the start of a group");
+                        error = new(CompilationResult.Type.ExpectedGroupCloseToken, $"Expected a `` to close the start of a group");
                         return false;
                     }
 
@@ -263,7 +263,7 @@ namespace ExpressionMachine
                                 {
                                     argument.Dispose();
                                     node = default;
-                                    error = new(CompilationError.Type.ExpectedGroupCloseToken, $"Expected a `` to close the start of a group");
+                                    error = new(CompilationResult.Type.ExpectedGroupCloseToken, $"Expected a `` to close the start of a group");
                                     return false;
                                 }
 
