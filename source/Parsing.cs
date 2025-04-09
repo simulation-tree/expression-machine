@@ -89,32 +89,32 @@ namespace ExpressionMachine
         public static Node GetTree(ReadOnlySpan<Token> tokens)
         {
             int position = 0;
-            return new(TryParseExpression(ref position, tokens));
+            return TryParseExpression(ref position, tokens);
         }
 
-        private static Node.Implementation* TryParseExpression(ref int position, ReadOnlySpan<Token> tokens)
+        private static Node TryParseExpression(ref int position, ReadOnlySpan<Token> tokens)
         {
             //todo: handle control nodes like if, else if, else, do, goto, and while
-            Node.Implementation* result = TryReadFactor(ref position, tokens);
+            Node result = TryReadFactor(ref position, tokens);
             if (position == tokens.Length)
             {
                 return result;
             }
 
             Token current = tokens[position];
-            while (result is not null && position < tokens.Length && IsTerm(current.type))
+            while (result != default && position < tokens.Length && IsTerm(current.type))
             {
                 if (current.type == Token.Type.Add)
                 {
                     position++;
-                    Node.Implementation* right = TryReadFactor(ref position, tokens);
-                    result = Node.Implementation.Allocate(NodeType.Addition, (nint)result, (nint)right, default);
+                    Node right = TryReadFactor(ref position, tokens);
+                    result = new(NodeType.Addition, result.Address, right.Address, default);
                 }
                 else if (current.type == Token.Type.Subtract)
                 {
                     position++;
-                    Node.Implementation* right = TryReadFactor(ref position, tokens);
-                    result = Node.Implementation.Allocate(NodeType.Subtraction, (nint)result, (nint)right, default);
+                    Node right = TryReadFactor(ref position, tokens);
+                    result = new(NodeType.Subtraction, result.Address, right.Address, default);
                 }
 
                 if (position == tokens.Length)
@@ -128,28 +128,28 @@ namespace ExpressionMachine
             return result;
         }
 
-        private static Node.Implementation* TryReadFactor(ref int position, ReadOnlySpan<Token> tokens)
+        private static Node TryReadFactor(ref int position, ReadOnlySpan<Token> tokens)
         {
-            Node.Implementation* factor = TryReadTerm(ref position, tokens);
+            Node factor = TryReadTerm(ref position, tokens);
             if (position == tokens.Length)
             {
                 return factor;
             }
 
             Token current = tokens[position];
-            while (factor is not null && position < tokens.Length && IsFactor(current.type))
+            while (factor != default && position < tokens.Length && IsFactor(current.type))
             {
                 if (current.type == Token.Type.Multiply)
                 {
                     position++;
-                    Node.Implementation* right = TryReadTerm(ref position, tokens);
-                    factor = Node.Implementation.Allocate(NodeType.Multiplication, (nint)factor, (nint)right, default);
+                    Node right = TryReadTerm(ref position, tokens);
+                    factor = new(NodeType.Multiplication, factor.Address, right.Address, default);
                 }
                 else if (current.type == Token.Type.Divide)
                 {
                     position++;
-                    Node.Implementation* right = TryReadTerm(ref position, tokens);
-                    factor = Node.Implementation.Allocate(NodeType.Division, (nint)factor, (nint)right, default);
+                    Node right = TryReadTerm(ref position, tokens);
+                    factor = new(NodeType.Division, factor.Address, right.Address, default);
                 }
 
                 if (position == tokens.Length)
@@ -163,7 +163,7 @@ namespace ExpressionMachine
             return factor;
         }
 
-        private static Node.Implementation* TryReadTerm(ref int position, ReadOnlySpan<Token> tokens)
+        private static Node TryReadTerm(ref int position, ReadOnlySpan<Token> tokens)
         {
             if (position == tokens.Length)
             {
@@ -175,7 +175,7 @@ namespace ExpressionMachine
             position++;
             if (current.type == Token.Type.BeginGroup)
             {
-                Node.Implementation* term = TryParseExpression(ref position, tokens);
+                Node term = TryParseExpression(ref position, tokens);
                 current = tokens[position];
                 if (current.type != Token.Type.EndGroup)
                 {
@@ -195,7 +195,7 @@ namespace ExpressionMachine
                     if (next.type == Token.Type.BeginGroup)
                     {
                         position++;
-                        Node.Implementation* argument = TryParseExpression(ref position, tokens);
+                        Node argument = TryParseExpression(ref position, tokens);
                         if (position < tokens.Length)
                         {
                             current = tokens[position];
@@ -207,15 +207,15 @@ namespace ExpressionMachine
                             position++;
                         }
 
-                        return Node.Implementation.Allocate(NodeType.Call, start, length, (nint)argument);
+                        return new(NodeType.Call, start, length, argument.Address);
                     }
                 }
 
-                return Node.Implementation.Allocate(NodeType.Value, start, length, default);
+                return new(NodeType.Value, start, length, default);
             }
             else
             {
-                return null;
+                return default;
             }
         }
 
