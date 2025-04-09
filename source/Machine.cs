@@ -1,6 +1,7 @@
 ﻿using Collections.Generic;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Unmanaged;
 
@@ -129,7 +130,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly bool TrySetSource(ReadOnlySpan<char> newSource, out CompilationError error)
+        public readonly bool TrySetSource(ReadOnlySpan<char> newSource, [NotNullWhen(false)] out Exception? exception)
         {
             MemoryAddress.ThrowIfDefault(machine);
 
@@ -149,7 +150,7 @@ namespace ExpressionMachine
 
                 //todo: efficiency: instead of disposing and creating a new instance, reuse it
                 machine->tree.Dispose();
-                if (Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out error))
+                if (Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out exception))
                 {
                     return true;
                 }
@@ -160,7 +161,7 @@ namespace ExpressionMachine
                 }
             }
 
-            error = default;
+            exception = default;
             return true;
         }
 
@@ -186,10 +187,10 @@ namespace ExpressionMachine
                 Parsing.GetTokens(newSource, machine->map, machine->tokens);
 
                 machine->tree.Dispose();
-                if (!Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out CompilationError error))
+                if (!Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out Exception? exception))
                 {
                     machine->tree = Node.Create();
-                    return new(error);
+                    return new(exception);
                 }
             }
 
@@ -199,19 +200,19 @@ namespace ExpressionMachine
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly bool TrySetSource(ASCIIText256 newSource, out CompilationError error)
+        public readonly bool TrySetSource(ASCIIText256 newSource, [NotNullWhen(false)] out Exception? exception)
         {
             Span<char> nameSpan = stackalloc char[newSource.Length];
             newSource.CopyTo(nameSpan);
-            return TrySetSource(nameSpan, out error);
+            return TrySetSource(nameSpan, out exception);
         }
 
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly bool TrySetSource(string newSource, out CompilationError error)
+        public readonly bool TrySetSource(string newSource, [NotNullWhen(false)] out Exception? exception)
         {
-            return TrySetSource(newSource.AsSpan(), out error);
+            return TrySetSource(newSource.AsSpan(), out exception);
         }
 
         /// <summary>
@@ -595,10 +596,10 @@ namespace ExpressionMachine
                 functionNameHashes = new(4);
                 functionValues = new(4);
                 tokens = Parsing.GetTokens(source, map);
-                if (!Parsing.TryGetTree(tokens.AsSpan(), out tree, out CompilationError error))
+                if (!Parsing.TryGetTree(tokens.AsSpan(), out tree, out Exception? exception))
                 {
                     tree = Node.Create();
-                    throw error.GetException();
+                    throw exception;
                 }
             }
 

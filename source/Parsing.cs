@@ -1,5 +1,6 @@
 ﻿using Collections.Generic;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ExpressionMachine
 {
@@ -87,16 +88,16 @@ namespace ExpressionMachine
         /// Creates a new <see cref="Node"/> containing the expression represented
         /// by the given <paramref name="tokens"/>.
         /// </summary>
-        public static bool TryGetTree(ReadOnlySpan<Token> tokens, out Node node, out CompilationError error)
+        public static bool TryGetTree(ReadOnlySpan<Token> tokens, out Node node, [NotNullWhen(false)] out Exception? exception)
         {
             int position = 0;
-            return TryParseExpression(ref position, tokens, out node, out error);
+            return TryParseExpression(ref position, tokens, out node, out exception);
         }
 
-        private static bool TryParseExpression(ref int position, ReadOnlySpan<Token> tokens, out Node node, out CompilationError error)
+        private static bool TryParseExpression(ref int position, ReadOnlySpan<Token> tokens, out Node node, [NotNullWhen(false)] out Exception? exception)
         {
             //todo: handle control nodes like if, else if, else, do, goto, and while
-            if (TryReadFactor(ref position, tokens, out node, out error))
+            if (TryReadFactor(ref position, tokens, out node, out exception))
             {
                 if (position == tokens.Length)
                 {
@@ -109,7 +110,7 @@ namespace ExpressionMachine
                     if (current.type == Token.Type.Add)
                     {
                         position++;
-                        if (TryReadFactor(ref position, tokens, out Node right, out error))
+                        if (TryReadFactor(ref position, tokens, out Node right, out exception))
                         {
                             node = new(NodeType.Addition, node.Address, right.Address, default);
                         }
@@ -123,7 +124,7 @@ namespace ExpressionMachine
                     else if (current.type == Token.Type.Subtract)
                     {
                         position++;
-                        if (TryReadFactor(ref position, tokens, out Node right, out error))
+                        if (TryReadFactor(ref position, tokens, out Node right, out exception))
                         {
                             node = new(NodeType.Subtraction, node.Address, right.Address, default);
                         }
@@ -152,9 +153,9 @@ namespace ExpressionMachine
             }
         }
 
-        private static bool TryReadFactor(ref int position, ReadOnlySpan<Token> tokens, out Node node, out CompilationError error)
+        private static bool TryReadFactor(ref int position, ReadOnlySpan<Token> tokens, out Node node, [NotNullWhen(false)] out Exception? exception)
         {
-            if (TryReadTerm(ref position, tokens, out node, out error))
+            if (TryReadTerm(ref position, tokens, out node, out exception))
             {
                 if (position == tokens.Length)
                 {
@@ -167,7 +168,7 @@ namespace ExpressionMachine
                     if (current.type == Token.Type.Multiply)
                     {
                         position++;
-                        if (TryReadTerm(ref position, tokens, out Node right, out error))
+                        if (TryReadTerm(ref position, tokens, out Node right, out exception))
                         {
                             node = new(NodeType.Multiplication, node.Address, right.Address, default);
                         }
@@ -181,7 +182,7 @@ namespace ExpressionMachine
                     else if (current.type == Token.Type.Divide)
                     {
                         position++;
-                        if (TryReadTerm(ref position, tokens, out Node right, out error))
+                        if (TryReadTerm(ref position, tokens, out Node right, out exception))
                         {
                             node = new(NodeType.Division, node.Address, right.Address, default);
                         }
@@ -210,13 +211,13 @@ namespace ExpressionMachine
             }
         }
 
-        private static bool TryReadTerm(ref int position, ReadOnlySpan<Token> tokens, out Node node, out CompilationError error)
+        private static bool TryReadTerm(ref int position, ReadOnlySpan<Token> tokens, out Node node, [NotNullWhen(false)] out Exception? exception)
         {
             if (position == tokens.Length)
             {
                 Token lastToken = tokens[position - 1];
                 node = default;
-                error = new(CompilationResult.Type.ExpectedAdditionalToken, $"Expected a token after `{lastToken.type}`");
+                exception = new MissingTokenException();
                 return false;
             }
 
@@ -224,14 +225,14 @@ namespace ExpressionMachine
             position++;
             if (current.type == Token.Type.BeginGroup)
             {
-                if (TryParseExpression(ref position, tokens, out node, out error))
+                if (TryParseExpression(ref position, tokens, out node, out exception))
                 {
                     current = tokens[position];
                     if (current.type != Token.Type.EndGroup)
                     {
                         node.Dispose();
                         node = default;
-                        error = new(CompilationResult.Type.ExpectedGroupCloseToken, $"Expected a `` to close the start of a group");
+                        exception = new MissingGroupCloseToken();
                         return false;
                     }
 
@@ -254,7 +255,7 @@ namespace ExpressionMachine
                     if (next.type == Token.Type.BeginGroup)
                     {
                         position++;
-                        if (TryParseExpression(ref position, tokens, out Node argument, out error))
+                        if (TryParseExpression(ref position, tokens, out Node argument, out exception))
                         {
                             if (position < tokens.Length)
                             {
@@ -263,7 +264,7 @@ namespace ExpressionMachine
                                 {
                                     argument.Dispose();
                                     node = default;
-                                    error = new(CompilationResult.Type.ExpectedGroupCloseToken, $"Expected a `` to close the start of a group");
+                                    exception = new MissingGroupCloseToken();
                                     return false;
                                 }
 
@@ -271,7 +272,7 @@ namespace ExpressionMachine
                             }
 
                             node = new(NodeType.Call, start, length, argument.Address);
-                            error = default;
+                            exception = null;
                             return true;
                         }
                         else
@@ -283,13 +284,13 @@ namespace ExpressionMachine
                 }
 
                 node = new(NodeType.Value, start, length, default);
-                error = default;
+                exception = null;
                 return true;
             }
             else
             {
                 node = default;
-                error = default;
+                exception = null;
                 return true;
             }
         }

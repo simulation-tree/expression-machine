@@ -159,7 +159,7 @@ namespace ExpressionMachine.Tests
             using Machine vm = new();
             CompilationResult result = vm.SetSource("5 +");
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.type, Is.EqualTo(CompilationResult.Type.ExpectedAdditionalToken));
+            Assert.That(result.exception?.GetType(), Is.EqualTo(typeof(MissingTokenException)));
         }
     }
 }

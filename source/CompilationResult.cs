@@ -1,5 +1,4 @@
 ﻿using System;
-using Unmanaged;
 
 namespace ExpressionMachine
 {
@@ -11,33 +10,21 @@ namespace ExpressionMachine
         /// <summary>
         /// Success compilation result.
         /// </summary>
-        public static CompilationResult Success => new(Type.Success);
+        public static CompilationResult Success => new(null);
 
         /// <summary>
-        /// Result type.
+        /// Compilation exception if there was one.
         /// </summary>
-        public readonly Type type;
-
-        /// <summary>
-        /// Error message if compilation wasn't successful.
-        /// </summary>
-        public readonly ASCIIText256 errorMessage;
+        public readonly Exception? exception;
 
         /// <summary>
         /// Checks if the compilation was successful.
         /// </summary>
-        public readonly bool IsSuccess => type == Type.Success;
+        public readonly bool IsSuccess => exception is null;
 
-        internal CompilationResult(CompilationError error)
+        internal CompilationResult(Exception? exception)
         {
-            type = error.type;
-            errorMessage = error.errorMessage;
-        }
-
-        private CompilationResult(Type type)
-        {
-            this.type = type;
-            errorMessage = default;
+            this.exception = exception;
         }
 
         /// <inheritdoc/>
@@ -49,13 +36,13 @@ namespace ExpressionMachine
         /// <inheritdoc/>
         public readonly bool Equals(CompilationResult other)
         {
-            return type == other.type && errorMessage.Equals(other.errorMessage);
+            return exception == other.exception;
         }
 
         /// <inheritdoc/>
         public readonly override int GetHashCode()
         {
-            return HashCode.Combine(type, errorMessage);
+            return exception?.GetHashCode() ?? 0;
         }
 
         /// <inheritdoc/>
@@ -68,32 +55,6 @@ namespace ExpressionMachine
         public static bool operator !=(CompilationResult left, CompilationResult right)
         {
             return !(left == right);
-        }
-
-        /// <summary>
-        /// Defines all built-in compilation error types.
-        /// </summary>
-        public enum Type
-        {
-            /// <summary>
-            /// Default value.
-            /// </summary>
-            None,
-
-            /// <summary>
-            /// Compilation successful.
-            /// </summary>
-            Success,
-
-            /// <summary>
-            /// An additional token was expected but is missing.
-            /// </summary>
-            ExpectedAdditionalToken,
-
-            /// <summary>
-            /// A group closing token was epxected but is missing.
-            /// </summary>
-            ExpectedGroupCloseToken
         }
     }
 }
