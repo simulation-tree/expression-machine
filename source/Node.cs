@@ -6,7 +6,7 @@ namespace ExpressionMachine
     /// <summary>
     /// Represents a node in the expression tree.
     /// </summary>
-    public unsafe struct Node : IDisposable
+    public unsafe struct Node : IDisposable, IEquatable<Node>
     {
         private Implementation* node;
 
@@ -78,24 +78,24 @@ namespace ExpressionMachine
         /// </summary>
         public Node()
         {
-            node = Implementation.Allocate(default, default, default, default);
+            node = MemoryAddress.AllocatePointer<Implementation>();
+            node[0] = new(default, default, default, default);
         }
 #endif
-
-        /// <summary>
-        /// Initializes an existing node from the given <paramref name="pointer"/>.
-        /// </summary>
-        public Node(Implementation* pointer)
-        {
-            this.node = pointer;
-        }
 
         /// <summary>
         /// Creates a new node with the given <paramref name="type"/>.
         /// </summary>
         public Node(NodeType type, nint a, nint b, nint c)
         {
-            node = Implementation.Allocate(type, a, b, c);
+            node = MemoryAddress.AllocatePointer<Implementation>();
+            node[0] = new(type, a, b, c);
+        }
+
+        /// <inheritdoc/>
+        public readonly override string ToString()
+        {
+            return Type.ToString();
         }
 
         /// <summary>
@@ -127,17 +127,58 @@ namespace ExpressionMachine
             node->c = default;
         }
 
+        /// <inheritdoc/>
+        public readonly override bool Equals(object? obj)
+        {
+            return obj is Node node && Equals(node);
+        }
+
+        /// <inheritdoc/>
+        public readonly bool Equals(Node other)
+        {
+            return node == other.node;
+        }
+
+        /// <inheritdoc/>
+        public readonly override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((nint)node).GetHashCode();
+            }
+        }
+
+        /// <summary>
+        /// Creates an empty node.
+        /// </summary>
+        public static Node Create()
+        {
+            return new(default, default, default, default);
+        }
+
+        /// <inheritdoc/>
+        public static bool operator ==(Node left, Node right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <inheritdoc/>
+        public static bool operator !=(Node left, Node right)
+        {
+            return !(left == right);
+        }
+
         /// <summary>
         /// Implementation type.
         /// </summary>
-        public struct Implementation
+        internal struct Implementation
         {
             internal NodeType type;
             internal nint a;
             internal nint b;
             internal nint c;
 
-            private Implementation(NodeType type, nint a, nint b, nint c)
+            public Implementation(NodeType type, nint a, nint b, nint c)
             {
                 this.type = type;
                 this.a = a;
@@ -215,19 +256,6 @@ namespace ExpressionMachine
 
                     default:
                         throw new InvalidOperationException($"Unknown node type `{type}`");
-                }
-            }
-
-            /// <summary>
-            /// Allocates a new node.
-            /// </summary>
-            public static Implementation* Allocate(NodeType type, nint a, nint b, nint c)
-            {
-                ref Implementation node = ref MemoryAddress.Allocate<Implementation>();
-                node = new Implementation(type, a, b, c);
-                fixed (Implementation* pointer = &node)
-                {
-                    return pointer;
                 }
             }
         }

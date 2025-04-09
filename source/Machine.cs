@@ -1,7 +1,7 @@
-﻿using Collections;
-using Collections.Generic;
+﻿using Collections.Generic;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Unmanaged;
 
@@ -24,7 +24,7 @@ namespace ExpressionMachine
             {
                 MemoryAddress.ThrowIfDefault(machine);
 
-                return machine->source.AsSpan();
+                return machine->source.GetSpan<char>(machine->sourceLength);
             }
         }
 
@@ -39,25 +39,18 @@ namespace ExpressionMachine
         /// </summary>
         public Machine()
         {
-            machine = Implementation.Allocate();
+            machine = MemoryAddress.AllocatePointer<Implementation>();
+            machine[0] = new(TokenMap.Create());
         }
 #endif
-
-        /// <summary>
-        /// Initializes an existing machine from the given <paramref name="pointer"/>.
-        /// </summary>
-        public Machine(Implementation* pointer)
-        {
-            this.machine = pointer;
-        }
 
         /// <summary>
         /// Creates a new machine initialized with the given <paramref name="source"/>.
         /// </summary>
         public Machine(ReadOnlySpan<char> source)
         {
-            machine = Implementation.Allocate();
-            SetSource(source);
+            machine = MemoryAddress.AllocatePointer<Implementation>();
+            machine[0] = new(TokenMap.Create(), source);
         }
 
         /// <summary>
@@ -65,8 +58,10 @@ namespace ExpressionMachine
         /// </summary>
         public Machine(ASCIIText256 source)
         {
-            machine = Implementation.Allocate();
-            SetSource(source);
+            machine = MemoryAddress.AllocatePointer<Implementation>();
+            Span<char> buffer = stackalloc char[source.Length];
+            source.CopyTo(buffer);
+            machine[0] = new(TokenMap.Create(), buffer);
         }
 
         /// <summary>
@@ -74,8 +69,8 @@ namespace ExpressionMachine
         /// </summary>
         public Machine(string source)
         {
-            machine = Implementation.Allocate();
-            SetSource(source);
+            machine = MemoryAddress.AllocatePointer<Implementation>();
+            machine[0] = new(TokenMap.Create(), source);
         }
 
         [Conditional("DEBUG")]
@@ -105,49 +100,148 @@ namespace ExpressionMachine
             }
         }
 
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfTokenIsOutOfRange(int start, int length)
+        {
+            if (start < 0)
+            {
+                throw new InvalidOperationException($"Start index `{start}` is out of bounds");
+            }
+
+            if (length < 0)
+            {
+                throw new InvalidOperationException($"Length `{length}` is out of bounds");
+            }
+
+            if (start + length > machine->sourceLength)
+            {
+                throw new InvalidOperationException($"Token starting at `{start}` with length `{length}` is out of bounds");
+            }
+        }
+
         /// <inheritdoc/>
         public void Dispose()
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            Implementation.Free(ref machine);
+            foreach (Function function in machine->functionValues.Values)
+            {
+                function.Dispose();
+            }
+
+            machine->tree.Dispose();
+            machine->tokens.Dispose();
+            machine->functionValues.Dispose();
+            machine->variableValues.Dispose();
+            machine->source.Dispose();
+            machine->map.Dispose();
+            MemoryAddress.Free(ref machine);
         }
 
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly void SetSource(ReadOnlySpan<char> newSource)
+        public readonly bool TrySetSource(ReadOnlySpan<char> newSource, [NotNullWhen(false)] out Exception? exception)
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            ReadOnlySpan<char> currentSource = machine->source.AsSpan();
+            ReadOnlySpan<char> currentSource = machine->source.GetSpan<char>(machine->sourceLength);
             if (!newSource.SequenceEqual(currentSource))
             {
+                machine->sourceLength = newSource.Length;
+                if (machine->sourceCapacity < machine->sourceLength)
+                {
+                    machine->sourceCapacity = machine->sourceLength.GetNextPowerOf2();
+                    MemoryAddress.Resize(ref machine->source, machine->sourceCapacity * sizeof(char));
+                }
+
+                machine->source.CopyFrom(newSource);
+                machine->tokens.Clear();
+                Parsing.GetTokens(newSource, machine->map, machine->tokens);
+
+                //todo: efficiency: instead of disposing and creating a new instance, reuse it
+                machine->tree.Dispose();
+                if (Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out exception))
+                {
+                    return true;
+                }
+                else
+                {
+                    machine->tree = Node.Create();
+                    return false;
+                }
+            }
+
+            exception = default;
+            return true;
+        }
+
+        /// <summary>
+        /// Assigns <paramref name="newSource"/> to the machine.
+        /// </summary>
+        public readonly CompilationResult SetSource(ReadOnlySpan<char> newSource)
+        {
+            MemoryAddress.ThrowIfDefault(machine);
+
+            ReadOnlySpan<char> currentSource = machine->source.GetSpan<char>(machine->sourceLength);
+            if (!newSource.SequenceEqual(currentSource))
+            {
+                machine->sourceLength = newSource.Length;
+                if (machine->sourceCapacity < machine->sourceLength)
+                {
+                    machine->sourceCapacity = machine->sourceLength.GetNextPowerOf2();
+                    MemoryAddress.Resize(ref machine->source, machine->sourceCapacity * sizeof(char));
+                }
+
                 machine->source.CopyFrom(newSource);
                 machine->tokens.Clear();
                 Parsing.GetTokens(newSource, machine->map, machine->tokens);
 
                 machine->tree.Dispose();
-                machine->tree = Parsing.GetTree(machine->tokens.AsSpan());
+                if (!Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out Exception? exception))
+                {
+                    machine->tree = Node.Create();
+                    return new(exception);
+                }
             }
+
+            return CompilationResult.Success;
         }
 
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly void SetSource(ASCIIText256 newSource)
+        public readonly bool TrySetSource(ASCIIText256 newSource, [NotNullWhen(false)] out Exception? exception)
         {
             Span<char> nameSpan = stackalloc char[newSource.Length];
             newSource.CopyTo(nameSpan);
-            SetSource(nameSpan);
+            return TrySetSource(nameSpan, out exception);
         }
 
         /// <summary>
         /// Assigns <paramref name="newSource"/> to the machine.
         /// </summary>
-        public readonly void SetSource(string newSource)
+        public readonly bool TrySetSource(string newSource, [NotNullWhen(false)] out Exception? exception)
         {
-            SetSource(newSource.AsSpan());
+            return TrySetSource(newSource.AsSpan(), out exception);
+        }
+
+        /// <summary>
+        /// Assigns <paramref name="newSource"/> to the machine.
+        /// </summary>
+        public readonly CompilationResult SetSource(ASCIIText256 newSource)
+        {
+            Span<char> nameSpan = stackalloc char[newSource.Length];
+            newSource.CopyTo(nameSpan);
+            return SetSource(nameSpan);
+        }
+
+        /// <summary>
+        /// Assigns <paramref name="newSource"/> to the machine.
+        /// </summary>
+        public readonly CompilationResult SetSource(string newSource)
+        {
+            return SetSource(newSource.AsSpan());
         }
 
         /// <summary>
@@ -157,7 +251,6 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            machine->variableNameHashes.Clear();
             machine->variableValues.Clear();
         }
 
@@ -168,7 +261,6 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            machine->functionNameHashes.Clear();
             machine->functionValues.Clear();
         }
 
@@ -180,9 +272,8 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
             ThrowIfVariableIsMissing(name);
 
-            int hash = new ASCIIText256(name).GetHashCode();
-            int index = machine->variableNameHashes.IndexOf(hash);
-            return machine->variableValues[index];
+            long hash = name.GetLongHashCode();
+            return machine->variableValues[hash];
         }
 
         /// <summary>
@@ -210,8 +301,8 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            int hash = new ASCIIText256(name).GetHashCode();
-            return machine->variableNameHashes.Contains(hash);
+            long hash = name.GetLongHashCode();
+            return machine->variableValues.ContainsKey(hash);
         }
 
         /// <summary>
@@ -239,8 +330,8 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            int hash = new ASCIIText256(name).GetHashCode();
-            return machine->functionNameHashes.Contains(hash);
+            long hash = name.GetLongHashCode();
+            return machine->functionValues.ContainsKey(hash);
         }
 
         /// <summary>
@@ -250,8 +341,8 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            int hash = name.GetHashCode();
-            return machine->functionNameHashes.Contains(hash);
+            long hash = name.GetLongHashCode();
+            return machine->functionValues.ContainsKey(hash);
         }
 
         /// <summary>
@@ -261,16 +352,14 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            int hash = new ASCIIText256(name).GetHashCode();
-            if (machine->variableNameHashes.TryIndexOf(hash, out int index))
+            long hash = name.GetLongHashCode();
+            ref float existing = ref machine->variableValues.TryGetValue(hash, out bool contains);
+            if (!contains)
             {
-                machine->variableValues[index] = value;
+                existing = ref machine->variableValues.Add(hash);
             }
-            else
-            {
-                machine->variableNameHashes.Add(hash);
-                machine->variableValues.Add(value);
-            }
+
+            existing = value;
         }
 
         /// <summary>
@@ -297,8 +386,9 @@ namespace ExpressionMachine
         public readonly ReadOnlySpan<char> GetToken(Token token)
         {
             MemoryAddress.ThrowIfDefault(machine);
+            ThrowIfTokenIsOutOfRange(token.start, token.length);
 
-            return machine->source.AsSpan().Slice(token.start, token.length);
+            return machine->source.AsSpan<char>(token.start, token.length);
         }
 
         /// <summary>
@@ -307,8 +397,9 @@ namespace ExpressionMachine
         public readonly ReadOnlySpan<char> GetToken(int start, int length)
         {
             MemoryAddress.ThrowIfDefault(machine);
+            ThrowIfTokenIsOutOfRange(start, length);
 
-            return machine->source.AsSpan().Slice(start, length);
+            return machine->source.AsSpan<char>(start, length);
         }
 
         /// <summary>
@@ -318,16 +409,14 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            int hash = name.GetHashCode();
-            if (machine->functionNameHashes.TryIndexOf(hash, out int index))
+            long hash = name.GetLongHashCode();
+            ref Function existing = ref machine->functionValues.TryGetValue(hash, out bool contains);
+            if (!contains)
             {
-                machine->functionValues[index] = function;
+                existing = ref machine->functionValues.Add(hash);
             }
-            else
-            {
-                machine->functionNameHashes.Add(hash);
-                machine->functionValues.Add(function);
-            }
+
+            existing = function;
         }
 
         /// <summary>
@@ -337,17 +426,14 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            Function f = new(function);
-            int hash = new ASCIIText256(name).GetHashCode();
-            if (machine->functionNameHashes.TryIndexOf(hash, out int index))
+            long hash = name.GetLongHashCode();
+            ref Function existing = ref machine->functionValues.TryGetValue(hash, out bool contains);
+            if (!contains)
             {
-                machine->functionValues[index] = f;
+                existing = ref machine->functionValues.Add(hash);
             }
-            else
-            {
-                machine->functionNameHashes.Add(hash);
-                machine->functionValues.Add(f);
-            }
+
+            existing = new(function);
         }
 
         /// <summary>
@@ -375,17 +461,14 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            Function f = new(function);
-            int hash = new ASCIIText256(name).GetHashCode();
-            if (machine->functionNameHashes.TryIndexOf(hash, out int index))
+            long hash = name.GetLongHashCode();
+            ref Function existing = ref machine->functionValues.TryGetValue(hash, out bool contains);
+            if (!contains)
             {
-                machine->functionValues[index] = f;
+                existing = ref machine->functionValues.Add(hash);
             }
-            else
-            {
-                machine->functionNameHashes.Add(hash);
-                machine->functionValues.Add(f);
-            }
+
+            existing = new(function);
         }
 
         /// <summary>
@@ -415,9 +498,8 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
             ThrowIfFunctionIsMissing(name);
 
-            int hash = new ASCIIText256(name).GetHashCode();
-            int index = machine->functionNameHashes.IndexOf(hash);
-            Function function = machine->functionValues[index];
+            long hash = name.GetLongHashCode();
+            Function function = machine->functionValues[hash];
             return function.Invoke(value);
         }
 
@@ -430,9 +512,8 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
             ThrowIfFunctionIsMissing(name);
 
-            int hash = name.GetHashCode();
-            int index = machine->functionNameHashes.IndexOf(hash);
-            Function function = machine->functionValues[index];
+            long hash = name.GetLongHashCode();
+            Function function = machine->functionValues[hash];
             return function.Invoke(value);
         }
 
@@ -445,9 +526,8 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
             ThrowIfFunctionIsMissing(name);
 
-            int hash = new ASCIIText256(name).GetHashCode();
-            int index = machine->functionNameHashes.IndexOf(hash);
-            Function function = machine->functionValues[index];
+            long hash = name.GetLongHashCode();
+            Function function = machine->functionValues[hash];
             return function.Invoke(value);
         }
 
@@ -458,7 +538,7 @@ namespace ExpressionMachine
         {
             MemoryAddress.ThrowIfDefault(machine);
 
-            ReadOnlySpan<char> source = machine->source.AsSpan();
+            ReadOnlySpan<char> source = machine->source.GetSpan<char>(machine->sourceLength);
             if (float.TryParse(source, out float result))
             {
                 return result;
@@ -472,63 +552,44 @@ namespace ExpressionMachine
         /// <summary>
         /// Native implementation type.
         /// </summary>
-        public struct Implementation
+        internal struct Implementation
         {
-            internal readonly TokenMap map;
-            internal readonly Text source;
-            internal readonly List<int> variableNameHashes;
-            internal readonly List<float> variableValues;
-            internal readonly List<int> functionNameHashes;
-            internal readonly List<Function> functionValues;
-            internal readonly List<Token> tokens;
-            internal Node tree;
+            public Node tree;
+            public MemoryAddress source;
+            public int sourceLength;
+            public int sourceCapacity;
+            public readonly TokenMap map;
+            public readonly Dictionary<long, float> variableValues;
+            public readonly Dictionary<long, Function> functionValues;
+            public readonly List<Token> tokens;
 
-            private Implementation(TokenMap map)
+            public Implementation(TokenMap map)
             {
                 this.map = map;
-                source = new();
-                variableNameHashes = new();
-                variableValues = new();
-                functionNameHashes = new();
-                functionValues = new();
-                tokens = new();
-                tree = new();
+                sourceCapacity = 4;
+                sourceLength = 0;
+                source = MemoryAddress.Allocate(sizeof(char) * sourceCapacity);
+                variableValues = new(4);
+                functionValues = new(4);
+                tokens = new(32);
+                tree = Node.Create();
             }
 
-            /// <summary>
-            /// Allocates a new machine.
-            /// </summary>
-            public static Implementation* Allocate()
+            public Implementation(TokenMap map, ReadOnlySpan<char> source)
             {
-                ref Implementation machine = ref MemoryAddress.Allocate<Implementation>();
-                machine = new(new TokenMap());
-                fixed (Implementation* pointer = &machine)
+                this.map = map;
+                sourceLength = source.Length;
+                sourceCapacity = Math.Max(4, sourceLength.GetNextPowerOf2());
+                this.source = MemoryAddress.Allocate(sizeof(char) * sourceCapacity);
+                this.source.CopyFrom(source);
+                variableValues = new(4);
+                functionValues = new(4);
+                tokens = Parsing.GetTokens(source, map);
+                if (!Parsing.TryGetTree(tokens.AsSpan(), out tree, out Exception? exception))
                 {
-                    return pointer;
+                    tree = Node.Create();
+                    throw exception;
                 }
-            }
-
-            /// <summary>
-            /// Frees the given <paramref name="machine"/>.
-            /// </summary>
-            public static void Free(ref Implementation* machine)
-            {
-                MemoryAddress.ThrowIfDefault(machine);
-
-                for (int i = 0; i < machine->functionValues.Count; i++)
-                {
-                    machine->functionValues[i].Dispose();
-                }
-
-                machine->tree.Dispose();
-                machine->tokens.Dispose();
-                machine->functionValues.Dispose();
-                machine->functionNameHashes.Dispose();
-                machine->variableValues.Dispose();
-                machine->variableNameHashes.Dispose();
-                machine->source.Dispose();
-                machine->map.Dispose();
-                MemoryAddress.Free(ref machine);
             }
         }
     }

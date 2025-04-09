@@ -6,6 +6,12 @@
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<Title>Expression Machine</Title>
+		<Authors>popcron</Authors>
+		<Company>simulation-tree</Company>
+		<Description>Library for evaluating logic expressions at runtime.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/simulation-tree/expression-machine</RepositoryUrl>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -22,6 +28,13 @@
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<WarningLevel>7</WarningLevel>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="..\README.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\collections\source\Collections.csproj" />

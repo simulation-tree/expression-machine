@@ -15,37 +15,40 @@ Below is an example that fills a destination span with coordinates for the point
 with either a radius or a diameter as input. While reusing the same machine instance by modifying
 its source and variables, and re-evaluating the expression.
 ```cs
-public unsafe void GetCirclePositions(float value, bool isDiameter, USpan<Vector2> positions)
+public void GetCirclePositions(float radius, Span<Vector2> positions)
 {
     using Machine vm = new();
     vm.SetVariable("value", value);
-    vm.SetVariable("multiplier", isDiameter ? 2 : 1);
-    vm.SetFunction("cos", &Cos);
-    vm.SetFunction("sin", &Sin);
+    vm.SetFunction("cos", MathF.Cos);
+    vm.SetFunction("sin", MathF.Sin);
 
-    uint length = positions.Length;
+    int length = positions.Length;
     for (int i = 0; i < length; i++)
     {
         float t = i * MathF.PI / (length * 0.5f);
         vm.SetVariable("t", t);
-        vm.SetSource("cos(t) * (value * multiplier)");
+        vm.SetSource("cos(t) * radius");
         float x = vm.Evaluate();    
-        vm.SetSource("sin(t) * (value * multiplier)");
+        vm.SetSource("sin(t) * radius");
         float y = vm.Evaluate();
         positions[i] = new Vector2(x, y);
     }
+}
+```
 
-    [UnmanagedCallersOnly]
-    static float Cos(float value)
-    {
-        return MathF.Cos(value);
-    }
+### Checking for compilation issues
 
-    [UnmanagedCallersOnly]
-    static float Sin(float value)
-    {
-        return MathF.Sin(value);
-    }
+When a text source is assigned to the machine, it returns a compilation result.
+This result value can be used to check if there were issues. And can do so with the try-do pattern:
+```cs
+if (vm.TrySetSource("5 +", out Exception? exception))
+{
+    //success
+}
+else
+{
+    //error
+    throw exception;
 }
 ```
 
