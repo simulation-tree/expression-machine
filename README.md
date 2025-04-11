@@ -1,5 +1,7 @@
 # Expression Machine
 
+[![Test](https://github.com/simulation-tree/expression-machine/actions/workflows/test.yml/badge.svg)](https://github.com/simulation-tree/expression-machine/actions/workflows/test.yml)
+
 Library for evaluating logic expressions at runtime.
 
 ### Features
