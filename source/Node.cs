@@ -92,6 +92,14 @@ namespace ExpressionMachine
             node[0] = new(type, a, b, c);
         }
 
+        /// <summary>
+        /// Initializes an existing node from the given native <paramref name="address"/>.
+        /// </summary>
+        public Node(nint address)
+        {
+            node = (Implementation*)address;
+        }
+
         /// <inheritdoc/>
         public readonly override string ToString()
         {
@@ -103,7 +111,26 @@ namespace ExpressionMachine
         /// </summary>
         public void Dispose()
         {
-            Implementation.Free(ref node);
+            MemoryAddress.ThrowIfDefault(node);
+
+            NodeType type = node->type;
+            if (type == NodeType.Addition || type == NodeType.Subtraction || type == NodeType.Multiplication || type == NodeType.Division)
+            {
+                Node left = new(node->a);
+                Node right = new(node->b);
+                left.Dispose();
+                right.Dispose();
+            }
+            else if (type == NodeType.Call)
+            {
+                if (node->c != default)
+                {
+                    Node argument = new(node->c);
+                    argument.Dispose();
+                }
+            }
+
+            MemoryAddress.Free(ref node);
         }
 
         /// <summary>
@@ -111,7 +138,45 @@ namespace ExpressionMachine
         /// </summary>
         public readonly float Evaluate(Machine vm)
         {
-            return Implementation.Evaluate(node, vm);
+            MemoryAddress.ThrowIfDefault(node);
+
+            NodeType type = node->type;
+            switch (type)
+            {
+                case NodeType.Value:
+                    ReadOnlySpan<char> token = vm.GetToken((int)node->a, (int)node->b);
+                    if (float.TryParse(token, out float value))
+                    {
+                        return value;
+                    }
+                    else
+                    {
+                        return vm.GetVariable(token);
+                    }
+                case NodeType.Addition:
+                    return new Node(node->a).Evaluate(vm) + new Node(node->b).Evaluate(vm);
+                case NodeType.Subtraction:
+                    return new Node(node->a).Evaluate(vm) - new Node(node->b).Evaluate(vm);
+                case NodeType.Multiplication:
+                    return new Node(node->a).Evaluate(vm) * new Node(node->b).Evaluate(vm);
+                case NodeType.Division:
+                    return new Node(node->a).Evaluate(vm) / new Node(node->b).Evaluate(vm);
+                case NodeType.Call:
+                    token = vm.GetToken((int)node->a, (int)node->b);
+                    if (node->c == default)
+                    {
+                        //todo: implement handling of more than 1 arguments
+                        return vm.InvokeFunction(token, 0);
+                    }
+                    else
+                    {
+                        Node argument = new(node->c);
+                        return vm.InvokeFunction(token, argument.Evaluate(vm));
+                    }
+
+                default:
+                    throw new InvalidOperationException($"Unknown node type `{type}`");
+            }
         }
 
         /// <summary>
@@ -171,7 +236,7 @@ namespace ExpressionMachine
         /// <summary>
         /// Implementation type.
         /// </summary>
-        internal struct Implementation
+        private struct Implementation
         {
             internal NodeType type;
             internal nint a;
@@ -184,79 +249,6 @@ namespace ExpressionMachine
                 this.a = a;
                 this.b = b;
                 this.c = c;
-            }
-
-            /// <summary>
-            /// Frees the given <paramref name="node"/>.
-            /// </summary>
-            public static void Free(ref Implementation* node)
-            {
-                MemoryAddress.ThrowIfDefault(node);
-
-                NodeType type = node->type;
-                if (type == NodeType.Addition || type == NodeType.Subtraction || type == NodeType.Multiplication || type == NodeType.Division)
-                {
-                    Implementation* left = (Implementation*)node->a;
-                    Implementation* right = (Implementation*)node->b;
-                    Free(ref left);
-                    Free(ref right);
-                }
-                else if (type == NodeType.Call)
-                {
-                    Implementation* argument = (Implementation*)node->c;
-                    if (argument != null)
-                    {
-                        Free(ref argument);
-                    }
-                }
-
-                MemoryAddress.Free(ref node);
-            }
-
-            /// <summary>
-            /// Evaluates the given <paramref name="node"/>.
-            /// </summary>
-            public static float Evaluate(Implementation* node, Machine vm)
-            {
-                MemoryAddress.ThrowIfDefault(node);
-
-                NodeType type = node->type;
-                switch (type)
-                {
-                    case NodeType.Value:
-                        ReadOnlySpan<char> token = vm.GetToken((int)node->a, (int)node->b);
-                        if (float.TryParse(token, out float value))
-                        {
-                            return value;
-                        }
-                        else
-                        {
-                            return vm.GetVariable(token);
-                        }
-                    case NodeType.Addition:
-                        return Evaluate((Implementation*)node->a, vm) + Evaluate((Implementation*)node->b, vm);
-                    case NodeType.Subtraction:
-                        return Evaluate((Implementation*)node->a, vm) - Evaluate((Implementation*)node->b, vm);
-                    case NodeType.Multiplication:
-                        return Evaluate((Implementation*)node->a, vm) * Evaluate((Implementation*)node->b, vm);
-                    case NodeType.Division:
-                        return Evaluate((Implementation*)node->a, vm) / Evaluate((Implementation*)node->b, vm);
-                    case NodeType.Call:
-                        token = vm.GetToken((int)node->a, (int)node->b);
-                        Implementation* argument = (Implementation*)node->c;
-                        if (argument is null)
-                        {
-                            //todo: implement handling of more than 1 arguments
-                            return vm.InvokeFunction(token, 0);
-                        }
-                        else
-                        {
-                            return vm.InvokeFunction(token, Evaluate(argument, vm));
-                        }
-
-                    default:
-                        throw new InvalidOperationException($"Unknown node type `{type}`");
-                }
             }
         }
     }
