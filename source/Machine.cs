@@ -388,7 +388,7 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
             ThrowIfTokenIsOutOfRange(token.start, token.length);
 
-            return machine->source.AsSpan<char>(token.start, token.length);
+            return machine->source.AsSpan<char>(token.start * sizeof(char), token.length);
         }
 
         /// <summary>
@@ -399,7 +399,7 @@ namespace ExpressionMachine
             MemoryAddress.ThrowIfDefault(machine);
             ThrowIfTokenIsOutOfRange(start, length);
 
-            return machine->source.AsSpan<char>(start, length);
+            return machine->source.AsSpan<char>(start * sizeof(char), length);
         }
 
         /// <summary>
