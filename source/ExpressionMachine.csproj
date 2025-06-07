@@ -45,9 +45,9 @@
 
   <ItemGroup>
     <Content Include="bin/Debug/net9.0/ExpressionMachine.dll" Pack="true" PackagePath="tools/debug/ExpressionMachine.dll" Visible="false"/>
-    <Content Include="bin/Debug/net9.0/ExpressionMachine.xml" Pack="true" PackagePath="tools/debug/ExpressionMachine.xml" Visible="false"/>
+    <Content Include="bin/Debug/net9.0/ExpressionMachine.xml" Pack="true" PackagePath="tools/debug/ExpressionMachine.xml" Visible="false" Condition="Exists('bin/Debug/net9.0/ExpressionMachine.xml')"/>
     <Content Include="bin/Release/net9.0/ExpressionMachine.dll" Pack="true" PackagePath="tools/release/ExpressionMachine.dll" Visible="false"/>
-    <Content Include="bin/Release/net9.0/ExpressionMachine.xml" Pack="true" PackagePath="tools/release/ExpressionMachine.xml" Visible="false"/>
+    <Content Include="bin/Release/net9.0/ExpressionMachine.xml" Pack="true" PackagePath="tools/release/ExpressionMachine.xml" Visible="false" Condition="Exists('bin/Release/net9.0/ExpressionMachine.xml')"/>
     <Content Include="build/ExpressionMachine.targets" Pack="true" PackagePath="build/ExpressionMachine.targets" Visible="false"/>
   </ItemGroup>
 
