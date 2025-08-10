@@ -3,7 +3,7 @@
 
     <ItemGroup>
         <Reference Include="ExpressionMachine">
-            <HintPath>$(MSBuildThisFileDirectory)..\lib\net9.0\$(Configuration)\ExpressionMachine.dll</HintPath>
+            <HintPath>$(MSBuildThisFileDirectory)..\lib\$(TargetFramework)\$(Configuration)\ExpressionMachine.dll</HintPath>
         </Reference>
     </ItemGroup>
 

@@ -32,7 +32,9 @@ jobs:
       - name: Setup
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version:  |
+            9.0.x
+            10.0.x
 
       - name: Set VERSION variable from tag
         run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
@@ -50,7 +52,7 @@ jobs:
         run: dotnet build "${{ github.event.repository.name }}/tests" -c Release /p:Version=${VERSION}
             
       - name: Test
-        run: dotnet test "${{ github.event.repository.name }}/tests" -c Release --logger "trx"
+        run: dotnet test "${{ github.event.repository.name }}/tests" -c Release --logger "trx" --framework net10.0
             
       - name: Pack `ExpressionMachine`
         run: dotnet pack "${{ github.event.repository.name }}/source" /p:Version=${VERSION} --no-build --output .
