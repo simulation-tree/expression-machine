@@ -159,7 +159,6 @@ namespace ExpressionMachine
                 machine->tokens.Clear();
                 Parsing.GetTokens(newSource, machine->map, machine->tokens);
 
-                //todo: efficiency: instead of disposing and creating a new instance, reuse it
                 machine->tree.Dispose();
                 if (Parsing.TryGetTree(machine->tokens.AsSpan(), out machine->tree, out exception))
                 {
