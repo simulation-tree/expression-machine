@@ -207,10 +207,7 @@ namespace ExpressionMachine
         /// <inheritdoc/>
         public readonly override int GetHashCode()
         {
-            unchecked
-            {
-                return ((nint)node).GetHashCode();
-            }
+            return ((nint)node).GetHashCode();
         }
 
         /// <summary>
